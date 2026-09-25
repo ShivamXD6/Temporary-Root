@@ -1,0 +1,1 @@
+-keep class build.bytes.temproot.IReporter { *; }

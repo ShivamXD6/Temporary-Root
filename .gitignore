@@ -1,0 +1,32 @@
+# Gradle build artifacts
+.classpath
+.project
+.settings/
+.gradle/
+*.iml
+.idea/
+build/
+app/build/
+app/.cxx/
+
+# local settings
+local.properties
+signing.properties
+keystore.jks
+.DS_Store
+
+# LKM build artifacts
+lkm/*.cmd
+lkm/*.o.d
+lkm/*.o
+lkm/*.mod
+lkm/*.mod.c
+lkm/*.lto.o
+lkm/*.lds
+lkm/modules.order
+lkm/Module.symvers
+
+# Generated binaries
+out/
+app/src/main/jni/splicehelper
+app/src/main/jni/ko/*.ko

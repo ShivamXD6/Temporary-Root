@@ -1,0 +1,16 @@
+<resources>
+    <style name="Theme.DirtyFrag" parent="android:Theme.Material.Light">
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:colorPrimary">#8FC79A</item>
+        <item name="android:colorAccent">#8FC79A</item>
+        <item name="android:colorControlNormal">@android:color/black</item>
+        <item name="android:textColorPrimary">@android:color/black</item>
+        <item name="android:colorButtonNormal">@color/btn_background_color</item>
+        <item name="android:buttonCornerRadius">24dp</item>
+        <item name="android:buttonStyle">@style/Widget.DirtyFrag.Button</item>
+    </style>
+
+    <style name="Widget.DirtyFrag.Button" parent="android:Widget.Material.Button">
+        <item name="android:textColor">@color/btn_text_color</item>
+    </style>
+</resources>
