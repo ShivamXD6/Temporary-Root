@@ -55,15 +55,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Setup signing.properties if keystore secret exists
-        if: github.event_name != 'pull_request' && secrets.KEYSTORE != ''
-        run: |
-          echo KEYSTORE_FILE=../keystore.jks > signing.properties
-          echo KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }} >> signing.properties
-          echo KEY_ALIAS=${{ secrets.KEY_ALIAS }} >> signing.properties
-          echo KEY_PASSWORD=${{ secrets.KEY_PASSWORD }} >> signing.properties
-          echo "${{ secrets.KEYSTORE }}" | base64 --decode > keystore.jks
-
       - name: Download Temporary Root LKMs
         uses: actions/download-artifact@v7
         with:
@@ -79,21 +70,10 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
 
       - name: Build Temporary Root APK
-        run: |
-          if [ -f signing.properties ]; then
-            ./gradlew :app:assembleRelease
-          else
-            ./gradlew :app:assembleDebug
-          fi
+        run: ./gradlew :app:assembleDebug
 
       - name: Upload Temporary Root APK
         uses: actions/upload-artifact@v7
         with:
           name: TemporaryRoot
-          path: app/build/outputs/apk/*/*.apk
-
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
-        with:
-          files: app/build/outputs/apk/*/*.apk
+          path: app/build/outputs/apk/debug/*.apk
