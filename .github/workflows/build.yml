@@ -46,7 +46,7 @@ jobs:
       - name: Upload temproot.ko
         uses: actions/upload-artifact@v7
         with:
-          name: df-lkm-${{ matrix.kmi }}
+          name: temproot-lkm-${{ matrix.kmi }}
           path: out/temproot-${{ matrix.kmi }}.ko
 
   build-temproot:
@@ -72,10 +72,10 @@ jobs:
           echo KEY_PASSWORD=${{ secrets.KEY_PASSWORD }} >> signing.properties
           echo ${{ secrets.KEYSTORE }} | base64 --decode > keystore.jks
 
-      - name: Download DF LKMs
+      - name: Download Temporary Root LKMs
         uses: actions/download-artifact@v7
         with:
-          pattern: df-lkm-*
+          pattern: temproot-lkm-*
           merge-multiple: true
           path: app/src/main/jni/ko/
 
@@ -86,7 +86,7 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
-      - name: Build TemporaryRoot APK
+      - name: Build Temporary Root APK
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             ./gradlew :app:assembleDebug
@@ -94,7 +94,7 @@ jobs:
             ./gradlew :app:assembleRelease
           fi
 
-      - name: Upload TemporaryRoot APK
+      - name: Upload Temporary Root APK
         uses: actions/upload-artifact@v7
         with:
           name: TemporaryRoot

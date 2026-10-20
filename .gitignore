@@ -6,6 +6,10 @@
 *.iml
 .idea/
 build/
+!app/src/main/java/build/
+!app/src/main/java/build/bytes/
+!app/src/main/java/build/bytes/temproot/
+!app/src/main/java/build/bytes/temproot/*.java
 app/build/
 app/.cxx/
 

@@ -45,7 +45,7 @@ keystore.jks:
 	keytool -genkeypair -keystore $@ -storetype JKS \
 	    -storepass $(SIGN_PASS) -keypass $(SIGN_PASS) \
 	    -alias $(SIGN_ALIAS) -keyalg RSA -keysize 2048 -validity 10000 \
-	    -dname "CN=TemporaryRoot"
+	    -dname "CN=Temporary Root"
 
 signing.properties: keystore.jks
 	printf 'KEYSTORE_FILE=../keystore.jks\nKEYSTORE_PASSWORD=%s\nKEY_ALIAS=%s\nKEY_PASSWORD=%s\n' \
@@ -67,21 +67,21 @@ $(LKM_KOS): $(LKM_SRCS)
 	              -R .note.Linux -R .note.GNU-stack \
 	              -R .BTF -R .BTF.base -R .llvm_addrsig \
 	              -R .hyp.text -R .hyp.bss -R .hyp.rodata -R .hyp.event_ids \
-	              -R .hyp.patchable_function_entries -R .hyp.data temproot.ko; \
+	            -R .hyp.patchable_function_entries -R .hyp.data temproot.ko; \
 	            mkdir -p /proj/app/src/main/jni/ko; \
 	            cp temproot.ko /proj/app/src/main/jni/ko/temproot-$$KMI.ko; \
 	            make clean; \
-	            printf "\033[1;32m  ✔  DF LKM   $$KMI\033[0m\n"; \
+	            printf "\033[1;32m  ✔  Temporary Root LKM   $$KMI\033[0m\n"; \
 	        ' || exit 1; \
 	done; \
 
 $(APK): signing.properties $(LKM_KOS) $(APK_SRCS)
-	@printf '\n\033[1;36m══  TemporaryRoot APK  ══\033[0m\n'
+	@printf '\n\033[1;36m══  Temporary Root APK  ══\033[0m\n'
 	@printf '\033[1;35m  → gradle assembleRelease\033[0m\n'
 	./gradlew :app:assembleRelease
 	mkdir -p $(dir $@)
 	cp app/build/outputs/apk/release/TemporaryRoot_*.apk $@
-	@printf '\033[1;32m  ✔  TemporaryRoot APK  →  $@\033[0m\n'
+	@printf '\033[1;32m  ✔  Temporary Root APK  →  $@\033[0m\n'
 
 clean:
 	rm -f app/src/main/jni/splicehelper

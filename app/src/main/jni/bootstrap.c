@@ -11,7 +11,7 @@
 #define BLKROSET   0x125d
 #define KSUD_STAGE "/data/user_de/0/build.bytes.temproot/ksud"
 #define KSUD       "/data/adb/ksud"
-#define PREFS_PATH "/data/user_de/0/build.bytes.temproot/shared_prefs/temproot.xml"
+#define PREFS_PATH "/data/user_de/0/build.bytes.temproot/shared_prefs/temporary_root.xml"
 #define MODULES_DIR "/data/adb/modules"
 
 static int pref_true(const char *buf, const char *key)
@@ -195,39 +195,39 @@ static int disable_modules(void)
 
 int main(void)
 {
-    touch("/dev/dfm1");
+    touch("/dev/trm1");
     char su_manager[256];
     int soft_reboot, disable_mods;
     if (read_prefs(su_manager, sizeof(su_manager), &soft_reboot, &disable_mods) != 0) {
-        touch("/dev/dfme0");
+        touch("/dev/trme0");
         return 1;
     }
 
-    touch("/dev/dfm2");
+    touch("/dev/trm2");
     if (adopt_zygote_env())
-        touch("/dev/dfmw0");
+        touch("/dev/trmw0");
 
-    touch("/dev/dfm3");
+    touch("/dev/trm3");
     if (set_partitions_ro())
-        touch("/dev/dfmw1");
+        touch("/dev/trmw1");
 
     if (disable_mods) {
-        touch("/dev/dfm4");
+        touch("/dev/trm4");
         if (disable_modules()) {
-            touch("/dev/dfme1");
+            touch("/dev/trme1");
             return 1;
         }
     }
 
-    touch("/dev/dfm5");    
+    touch("/dev/trm5");
     if (run_ctx(NULL, (char *[]){ KSUD_STAGE, "late-load", "--package-name", su_manager, NULL }) == 0) {
-        touch("/dev/dfm6");
+        touch("/dev/trm6");
         if (soft_reboot) {
             while (late_load_running()) sleep(1);
             run_ctx("u:r:ksu:s0", (char *[]){ KSUD, "soft-reboot", NULL });
         }
     } else {
-        touch("/dev/dfme2");
+        touch("/dev/trme2");
     }
         
     return 0;

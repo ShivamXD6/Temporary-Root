@@ -20,8 +20,8 @@ android {
         applicationId = "build.bytes.temproot"
         minSdk = 32
         targetSdk = 37
-        versionCode = 405
-        versionName = "4.5"
+        versionCode = 1
+        versionName = "1.0"
 
         ndk {
             abiFilters += listOf("arm64-v8a")
@@ -29,11 +29,19 @@ android {
     }
 
     signingConfigs {
-        create("release") {
-            storeFile = file(signingProps.getProperty("KEYSTORE_FILE"))
-            storePassword = signingProps.getProperty("KEYSTORE_PASSWORD")
-            keyAlias = signingProps.getProperty("KEY_ALIAS")
-            keyPassword = signingProps.getProperty("KEY_PASSWORD")
+        if (signingPropsFile.exists()) {
+            val ksFile = signingProps.getProperty("KEYSTORE_FILE")
+            val ksPass = signingProps.getProperty("KEYSTORE_PASSWORD")
+            val kAlias = signingProps.getProperty("KEY_ALIAS")
+            val kPass = signingProps.getProperty("KEY_PASSWORD")
+            if (ksFile != null && ksPass != null && kAlias != null && kPass != null) {
+                create("release") {
+                    storeFile = file(ksFile)
+                    storePassword = ksPass
+                    keyAlias = kAlias
+                    keyPassword = kPass
+                }
+            }
         }
     }
 
@@ -43,7 +51,9 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
         release {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfigs.findByName("release")?.let {
+                signingConfig = it
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -81,4 +91,8 @@ androidComponents {
 }
 
 dependencies {
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material)
+    implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.preference)
 }

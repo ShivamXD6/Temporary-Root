@@ -8,7 +8,7 @@
 #include <linux/slab.h>
 #include <asm/cpufeature.h>
 MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("TemporaryRoot LKM");
+MODULE_DESCRIPTION("Temporary Root LKM");
 
 typedef unsigned long (*kallsyms_lookup_name_t)(const char *name);
 typedef unsigned long (*module_kallsyms_lookup_name_t)(const char *name);
@@ -61,7 +61,7 @@ static int __nocfi __init temproot_init(void)
     static char cmd[512];
     static char *envp[] = { "PATH=/system/bin", NULL };
     static char *argv[] = { (char *)sh, "-c", cmd, NULL };
-    snprintf(cmd, sizeof(cmd), "touch /dev/dfm0; echo -n 'u:r:init:s0' > /proc/self/attr/exec; exec %s", bootstrap);
+    snprintf(cmd, sizeof(cmd), "touch /dev/trm0; echo -n 'u:r:init:s0' > /proc/self/attr/exec; exec %s", bootstrap);
 
     // Symbol finder
     kln_kp = (struct kprobe){ .symbol_name = "kallsyms_lookup_name" };

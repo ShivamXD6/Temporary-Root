@@ -1,21 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <SwitchPreference
-        android:key="boot_start"
-        android:title="Start at Boot"
-        android:summary="Automatically run TemporaryRoot on device boot" />
+    <PreferenceCategory
+        app:key="cat_startup"
+        app:title="STARTUP &amp; REBOOT"
+        app:iconSpaceReserved="true">
 
-    <SwitchPreference
-        android:key="soft_reboot"
-        android:title="Auto Soft Reboot"
-        android:summary="Applies to both Manual Start and Start at Boot."
-        android:defaultValue="false" />
+        <SwitchPreferenceCompat
+            app:key="boot_start"
+            app:title="Start at Boot"
+            app:summary="Automatically run Temporary Root when device boots"
+            app:icon="@drawable/ic_boot" />
 
-    <SwitchPreference
-        android:key="disable_modules"
-        android:title="Disable KSU Modules"
-        android:summary="Turn this on if a broken module is crashing your device. The next run will launch with all modules disabled."
-        android:defaultValue="false" />
+        <SwitchPreferenceCompat
+            app:key="soft_reboot"
+            app:title="Auto Soft Reboot"
+            app:summary="Applies soft reboot to finalize root state"
+            app:defaultValue="false"
+            app:icon="@drawable/ic_soft_reboot" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:key="cat_safety"
+        app:title="SAFETY &amp; CONVENIENCE"
+        app:iconSpaceReserved="true">
+
+        <SwitchPreferenceCompat
+            app:key="disable_modules"
+            app:title="Disable KSU Modules"
+            app:summary="Bypass modules on boot if a broken module causes bootloop"
+            app:defaultValue="false"
+            app:icon="@drawable/ic_disable_modules" />
+
+        <SwitchPreferenceCompat
+            app:key="open_manager_after_success"
+            app:title="Open Manager After Success"
+            app:summary="Automatically open the selected manager after exploit succeeds"
+            app:defaultValue="false"
+            app:icon="@drawable/ic_open_manager" />
+    </PreferenceCategory>
 
 </PreferenceScreen>

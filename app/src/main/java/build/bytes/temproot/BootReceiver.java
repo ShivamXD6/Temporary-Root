@@ -9,7 +9,7 @@ import android.util.Log;
 import java.io.File;
 
 public class BootReceiver extends BroadcastReceiver implements IReporter {
-    private static final String TAG = "temproot";
+    private static final String TAG = "temporaryroot";
 
     @Override
     public void report(String msg) {
@@ -18,14 +18,14 @@ public class BootReceiver extends BroadcastReceiver implements IReporter {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (new File("/dev/df").exists()) {
+        if (new File("/dev/tr").exists()) {
             Log.i(TAG, "boot: already hooked, skipping");
             return;
         }
         Log.i(TAG, "boot: " + intent.getAction());
         final Context deCtx = context.createDeviceProtectedStorageContext();
         PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
-        PowerManager.WakeLock wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "temproot:boot");
+        PowerManager.WakeLock wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "temporaryroot:boot");
         wl.acquire();
         new Thread(() -> {
             try {
@@ -36,6 +36,6 @@ public class BootReceiver extends BroadcastReceiver implements IReporter {
             } finally {
                 wl.release();
             }
-        }, "temproot-boot").start();
+        }, "temporaryroot-boot").start();
     }
 }

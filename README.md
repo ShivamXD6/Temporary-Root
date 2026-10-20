@@ -2,9 +2,9 @@
   <img src=".github/icon.png" width="96" />
 </p>
 
-# TemporaryRoot [DirtyFrag (CVE-2026-43284)]
+# Temporary Root
 
-TemporaryRoot is an Android rooting tool that exploits CVE-2026-43284 (DirtyFrag) — a kernel page cache write primitive — to load a custom kernel module without requiring an unlocked bootloader. It is intentionally designed to be SU Manager agnostic and works with any KernelSU-compatible SU manager.
+Temporary Root is an Android research project for establishing a temporary privileged session and handing it to a KernelSU-compatible manager. Its initial implementation uses CVE-2026-43284 (DirtyFrag); additional, independently documented research paths can be added behind the same manager integration.
 
 > [!IMPORTANT]
 > Before hitting that fork button, consider making a pull request instead :)
@@ -20,22 +20,22 @@ A: Sorry, there is no fix. Either:
 
 **Q: Log says "SUCCESS" or "ksud exited with error", but I don't have root**
 
-A: First, try disabling "Auto Soft Reboot" in TemporaryRoot settings if you have it enabled, otherwise https://github.com/ShivamXD6/Temporary-Root/discussions/69
+A: First, try disabling "Auto Soft Reboot" in Temporary Root settings.
 
 **Q: I installed a module and now I can't launch root without crashing**
 
-A: Toggle "Disable KSU Modules" in TemporaryRoot settings
+A: Toggle "Disable KSU Modules" in Temporary Root settings.
 
 **Q: I installed a module and have "Start at Boot" enabled and now I am bootlooping**
 
-A: Typically Android will detect bootloops and boot you into Safe Mode, otherwise you can usually hold the Volume Down button during boot to enter safe mode. From there, disable "Start on Boot" and enable "Disable KSU Modules" in TemporaryRoot settings or just uninstall TemporaryRoot until you stabilize.
+A: Typically Android will detect bootloops and boot you into Safe Mode, otherwise you can usually hold the Volume Down button during boot to enter safe mode. From there, disable "Start on Boot" and enable "Disable KSU Modules" in Temporary Root settings or uninstall Temporary Root until you stabilize.
 
 ## Usage
 
 > [!WARNING]
 > I am not responsible for any damage to your device.
 
-1. Install [TemporaryRoot](https://github.com/ShivamXD6/Temporary-Root/releases/latest)
+1. Build and install Temporary Root.
 2. Install a SU Manager from below:
    - Samsung:
      - [diabl0w's KernelSU](https://github.com/diabl0w/KernelSU/releases/latest)
@@ -70,7 +70,7 @@ The exploit uses this primitive to patch shellcode into `libc++.so` in the kerne
 
 4. **libc++ hook** (fires in init, uid=0, tid=1) — Shellcode is patched into `libc++.so` at `std::ostream::sentry::sentry()` (`_ZNSt3__113basic_ostreamIcNS_11char_traitsIcEEE6sentryC1ERS3_`). Triggered by: `createOrphanProcess()` double-forks so the grandchild is adopted by PID 1 (init); when init reaps the orphan its main thread (tid=1) calls through the hooked function. The shellcode:
    - Checks `getuid()==0` and `gettid()==1`; returns immediately otherwise
-   - Creates `/dev/df` as a one-shot mutex (O_CREAT|O_EXCL) to prevent re-entry
+   - Creates `/dev/tr` as a one-shot mutex (O_CREAT|O_EXCL) to prevent re-entry
    - Clones a worker child (parent returns to init immediately)
    - Worker forks a grandchild; grandchild writes `u:r:vendor_modprobe:s0` to `/proc/self/attr/exec` then execs `/vendor/bin/insmod <ko_target>`
 
