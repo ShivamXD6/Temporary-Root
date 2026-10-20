@@ -225,7 +225,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         btnDownloadManager.setOnClickListener(v -> downloadManager());
         btnRun.setOnClickListener(v -> {
             btnRun.setEnabled(false);
-            if (new File("/dev/tr").exists()) {
+            if (isRootActive()) {
                 mExec.execute(this::revertExploit);
             } else {
                 outputView.setText("");
@@ -401,10 +401,24 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         updateButtons();
     }
 
+    private boolean isRootActive() {
+        if (isStoppedByUser) return false;
+        if (!new File("/dev/tr").exists()) return false;
+        try {
+            Process p = Runtime.getRuntime().exec(new String[]{"su", "-c", "id"});
+            BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            String line = reader.readLine();
+            p.waitFor();
+            return line != null && line.contains("uid=0");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     private void updateButtons() {
         boolean isInstalled = selectedEntry != null && selectedEntry.isInstalled && selectedEntry.hasKsud;
         boolean hasDownload = selectedEntry != null && (selectedEntry.githubRepo != null || selectedEntry.fallbackWebUrl != null);
-        boolean isActive = !isStoppedByUser && new File("/dev/tr").exists();
+        boolean isActive = isRootActive();
 
         btnOpenManager.setEnabled(isInstalled);
         btnDownloadManager.setEnabled(hasDownload);

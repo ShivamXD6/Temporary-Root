@@ -35,7 +35,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="made by telegram/@BuildBytes"
+                android:text="improved by telegram/@BuildBytes"
                 android:textColor="#8F8F9E"
                 android:textSize="11sp" />
         </LinearLayout>
