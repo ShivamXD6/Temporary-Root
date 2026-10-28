@@ -1,11 +1,17 @@
 package build.bytes.temproot;
 
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
+import android.net.Uri;
+import android.os.Environment;
+import android.provider.MediaStore;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.text.SimpleDateFormat;
@@ -22,6 +28,7 @@ import java.util.Locale;
  */
 final class RunLog {
     private static final String NAME = "last-run.log";
+    private static final String DISPLAY_NAME = "TemporaryRoot-log.txt";
     private static final String START_MARK = "=== run start";
     private static final String END_MARK = "=== run end";
     private static final String[] PSTORE = {
@@ -57,6 +64,7 @@ final class RunLog {
 
     static synchronized void finish(Context ctx) {
         append(ctx, END_MARK + " " + stamp() + " ===\n");
+        export(ctx);
     }
 
     static String read(Context ctx) {
@@ -80,6 +88,38 @@ final class RunLog {
         if (trace == null || trace.trim().isEmpty()) return;
 
         append(ctx, "\n=== kernel panic trace (pstore) ===\n" + trace + "\n");
+        export(ctx);
+    }
+
+    /**
+     * Copies the log to Download/TemporaryRoot/last-run.log so it can be pulled
+     * without adb or root. Overwrites the previous copy.
+     */
+    static void export(Context ctx) {
+        String text = read(ctx);
+        if (text.isEmpty() || text.startsWith("No saved log")) return;
+
+        ContentResolver resolver = ctx.getContentResolver();
+        String path = Environment.DIRECTORY_DOWNLOADS + "/TemporaryRoot";
+        try {
+            resolver.delete(MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                    MediaStore.MediaColumns.DISPLAY_NAME + "=? AND " + MediaStore.MediaColumns.RELATIVE_PATH + "=?",
+                    new String[]{DISPLAY_NAME, path + "/"});
+        } catch (Exception ignored) {
+        }
+
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.MediaColumns.DISPLAY_NAME, DISPLAY_NAME);
+        values.put(MediaStore.MediaColumns.MIME_TYPE, "text/plain");
+        values.put(MediaStore.MediaColumns.RELATIVE_PATH, path);
+        try {
+            Uri uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+            if (uri == null) return;
+            try (OutputStream out = resolver.openOutputStream(uri)) {
+                if (out != null) out.write(text.getBytes(StandardCharsets.UTF_8));
+            }
+        } catch (Exception ignored) {
+        }
     }
 
     private static String suCat() {

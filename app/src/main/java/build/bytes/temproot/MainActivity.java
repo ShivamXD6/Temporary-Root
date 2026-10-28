@@ -531,7 +531,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
             mMain.post(() -> {
                 if (selected != strategy) return;
                 setLogExpanded(true);
-                outputView.append("\n" + result.asText() + "\n");
+                report("\n=== device check ===\n" + result.asText() + "\n");
                 deviceOk = result.ok;
                 updateButtons();
                 statusView.setText(result.title);
@@ -579,9 +579,10 @@ public class MainActivity extends AppCompatActivity implements IReporter {
                             .setPrimaryClip(ClipData.newPlainText("Temporary Root log", text));
                     Toast.makeText(this, "Log copied", Toast.LENGTH_SHORT).show();
                 })
-                .setNeutralButton("Share", (dialog, which) -> startActivity(Intent.createChooser(
-                        new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text),
-                        "Share log")))
+                .setNeutralButton("Save", (dialog, which) -> {
+                    RunLog.export(this);
+                    Toast.makeText(this, "Saved to Download/TemporaryRoot/last-run.log", Toast.LENGTH_LONG).show();
+                })
                 .setNegativeButton("Close", null)
                 .show();
     }
