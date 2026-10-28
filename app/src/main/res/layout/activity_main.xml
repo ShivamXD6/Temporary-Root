@@ -283,6 +283,16 @@
                             android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
                             android:textColor="@color/on_surface_variant" />
 
+                        <ImageButton
+                            android:id="@+id/btnShowLogs"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:layout_marginEnd="6dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="Saved logs"
+                            android:src="@drawable/ic_logs"
+                            app:tint="@color/on_surface_variant" />
+
                         <ImageView
                             android:id="@+id/btnToggleLog"
                             android:layout_width="20dp"

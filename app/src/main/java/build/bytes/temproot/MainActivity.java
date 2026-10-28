@@ -134,6 +134,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
 
     @Override public void report(String msg) {
         Log.i(TAG, msg.trim());
+        RunLog.append(this, msg);
         mMain.post(() -> { outputView.append(msg); outputScroll.post(() -> outputScroll.fullScroll(View.FOCUS_DOWN)); });
     }
 
@@ -239,6 +240,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         findViewById(R.id.btnCheckDevice).setOnClickListener(v -> checkDevice());
         findViewById(R.id.btnCopyLog).setOnClickListener(v -> copyLog());
         findViewById(R.id.btnShareLog).setOnClickListener(v -> shareLog());
+        findViewById(R.id.btnShowLogs).setOnClickListener(v -> showSavedLog());
         btnOpenManager.setOnClickListener(v -> openManager());
         btnDownloadManager.setOnClickListener(v -> downloadManager());
         btnRun.setOnClickListener(v -> {
@@ -255,6 +257,10 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         }
 
         updateButtons();
+
+        // A previous run that never reached its end marker died mid-exploit; pull
+        // the pstore trace while this process still has root.
+        new Thread(() -> RunLog.capturePanicIfNeeded(this), "temporaryroot-panic").start();
     }
 
     @Override
@@ -538,6 +544,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
     }
 
     private void runExploit() {
+        RunLog.start(mDeCtx);
         try {
             int rc = strategy.launch(mDeCtx, this);
             if (rc == 0) {
@@ -556,8 +563,27 @@ public class MainActivity extends AppCompatActivity implements IReporter {
             Log.e(TAG, "exploit exception", e);
             report("\nexception: " + e + "\n");
         } finally {
+            RunLog.finish(mDeCtx);
             mMain.post(this::updateButtons);
         }
+    }
+
+    /** The on-disk log, so it is still there after a crash or kernel panic. */
+    private void showSavedLog() {
+        String text = RunLog.read(this);
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Saved log")
+                .setMessage(text)
+                .setPositiveButton("Copy", (dialog, which) -> {
+                    ((ClipboardManager) getSystemService(CLIPBOARD_SERVICE))
+                            .setPrimaryClip(ClipData.newPlainText("Temporary Root log", text));
+                    Toast.makeText(this, "Log copied", Toast.LENGTH_SHORT).show();
+                })
+                .setNeutralButton("Share", (dialog, which) -> startActivity(Intent.createChooser(
+                        new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text),
+                        "Share log")))
+                .setNegativeButton("Close", null)
+                .show();
     }
 
     private void openManager() {
