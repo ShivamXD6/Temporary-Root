@@ -22,8 +22,6 @@ import android.os.Looper;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -55,8 +53,10 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -66,58 +66,70 @@ public class MainActivity extends AppCompatActivity implements IReporter {
     private Button btnRun, btnOpenManager, btnDownloadManager;
     private ScrollView outputScroll;
     private TextView outputView, statusView;
+    private View statusDot;
     private Spinner spinnerSuManager, spinnerVulnerability;
     private View logContentContainer;
     private ImageView btnToggleLog;
     private boolean isLogExpanded = false;
-    private boolean isStoppedByUser = false;
+    private boolean isExploitActive = false;
     private Context mDeCtx;
     private final Handler mMain = new Handler(Looper.getMainLooper());
     private final Executor mExec = Executors.newSingleThreadExecutor();
     private final List<ManagerEntry> managers = new ArrayList<>();
-    private VulnerabilityStrategy strategy = new DirtyFragStrategy();
+    private final Map<String, Drawable> iconCache = new HashMap<>();
+    private final List<VulnerabilityStrategy> strategies =
+            Arrays.asList(new DirtyFragStrategy(), new GhostLockStrategy());
+    private VulnerabilityStrategy strategy;
     private ManagerEntry selectedEntry;
     private String selectedManager;
     private long activeDownloadId = -1;
+    private volatile boolean externalRoot = false;
+    private volatile long externalRootCheckedAt = 0;
+    private Boolean deviceOk;
 
     private final BroadcastReceiver downloadReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
-            if (id != -1 && id == activeDownloadId) {
-                DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-                if (dm != null) {
-                    Uri apkUri = dm.getUriForDownloadedFile(id);
-                    if (apkUri != null) {
-                        Toast.makeText(context, "Download complete. Launching installer…", Toast.LENGTH_LONG).show();
-                        
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !getPackageManager().canRequestPackageInstalls()) {
-                            Toast.makeText(context, "Please enable 'Allow from this source' to install the manager", Toast.LENGTH_LONG).show();
-                            try {
-                                Intent allowIntent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
-                                        .setData(Uri.parse("package:" + getPackageName()))
-                                        .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                                startActivity(allowIntent);
-                            } catch (Exception ignored) {
-                            }
-                        } else {
-                            Intent install = new Intent(Intent.ACTION_VIEW);
-                            install.setDataAndType(apkUri, "application/vnd.android.package-archive");
-                            install.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                            try {
-                                startActivity(install);
-                            } catch (Exception e) {
-                                Toast.makeText(context, "Failed to launch installer: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                            }
-                        }
-                    }
-                }
-            }
+            if (id == -1 || id != activeDownloadId) return;
+
+            DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+            Uri apkUri = dm == null ? null : dm.getUriForDownloadedFile(id);
+            if (apkUri == null) return;
+
+            Toast.makeText(context, "Download complete. Launching installer…", Toast.LENGTH_LONG).show();
+            if (ensureInstallPermission()) installApk(apkUri);
         }
     };
 
     private int dpToPx(int dp) {
         return Math.round(dp * getResources().getDisplayMetrics().density);
+    }
+
+    /** Returns false when install permission is missing; the settings screen is opened instead. */
+    private boolean ensureInstallPermission() {
+        if (getPackageManager().canRequestPackageInstalls()) return true;
+        Toast.makeText(this, "Please enable 'Allow from this source' to install the manager", Toast.LENGTH_LONG).show();
+        try {
+            startActivity(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+                    .setData(Uri.parse("package:" + getPackageName()))
+                    .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        } catch (Exception ignored) {
+        }
+        return false;
+    }
+
+    private boolean installApk(Uri apkUri) {
+        Intent install = new Intent(Intent.ACTION_VIEW)
+                .setDataAndType(apkUri, "application/vnd.android.package-archive")
+                .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        try {
+            startActivity(install);
+            return true;
+        } catch (Exception e) {
+            Toast.makeText(this, "Failed to launch installer: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            return false;
+        }
     }
 
     @Override public void report(String msg) {
@@ -134,7 +146,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         if (mainRoot != null) {
             ViewCompat.setOnApplyWindowInsetsListener(mainRoot, (v, insets) -> {
                 Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-                v.setPadding(bars.left + dpToPx(16), bars.top + dpToPx(8), bars.right + dpToPx(16), bars.bottom + dpToPx(12));
+                v.setPadding(bars.left + dpToPx(20), bars.top + dpToPx(10), bars.right + dpToPx(20), bars.bottom + dpToPx(14));
                 return insets;
             });
         }
@@ -145,6 +157,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         outputScroll = findViewById(R.id.outputScroll);
         outputView = findViewById(R.id.outputView);
         statusView = findViewById(R.id.statusView);
+        statusDot = findViewById(R.id.statusDot);
         spinnerSuManager = findViewById(R.id.spinnerSuManager);
         spinnerVulnerability = findViewById(R.id.spinnerVulnerability);
         logContentContainer = findViewById(R.id.logContentContainer);
@@ -154,40 +167,43 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         if (outputScroll != null) {
             outputScroll.setOnTouchListener((v, event) -> {
                 v.getParent().requestDisallowInterceptTouchEvent(true);
-                if ((event.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_UP) {
+                int action = event.getAction() & MotionEvent.ACTION_MASK;
+                if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
                     v.getParent().requestDisallowInterceptTouchEvent(false);
-                    v.performClick();
+                    if (action == MotionEvent.ACTION_UP) v.performClick();
                 }
                 return false;
             });
         }
 
-        View.OnClickListener toggleLogListener = v -> {
-            isLogExpanded = !isLogExpanded;
-            if (logContentContainer != null) {
-                logContentContainer.setVisibility(isLogExpanded ? View.VISIBLE : View.GONE);
-            }
-            if (btnToggleLog != null) {
-                btnToggleLog.setImageResource(isLogExpanded ? R.drawable.ic_expand_less : R.drawable.ic_expand_more);
-            }
-        };
+        View.OnClickListener toggleLogListener = v -> setLogExpanded(!isLogExpanded);
         if (logHeader != null) logHeader.setOnClickListener(toggleLogListener);
         if (btnToggleLog != null) btnToggleLog.setOnClickListener(toggleLogListener);
 
-        spinnerVulnerability.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, new String[] { "DirtyFrag" }));
-        
+        String[] attackNames = new String[strategies.size()];
+        for (int i = 0; i < strategies.size(); i++) attackNames[i] = strategies.get(i).name();
+        strategy = strategies.get(0);
+        spinnerVulnerability.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, attackNames));
+        spinnerVulnerability.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                strategy = strategies.get(position);
+                deviceOk = null;
+                updateButtons();
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) {
+            }
+        });
+
         View btnVulnerabilityInfo = findViewById(R.id.btnVulnerabilityInfo);
         if (btnVulnerabilityInfo != null) {
             btnVulnerabilityInfo.setOnClickListener(v -> {
                 try {
-                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/v4bel/dirtyfrag")));
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(strategy.infoUrl())));
                 } catch (Exception e) {
                     Toast.makeText(this, "Unable to open link: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 }
             });
         }
-
-        loadManagers();
 
         spinnerSuManager.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -204,11 +220,13 @@ public class MainActivity extends AppCompatActivity implements IReporter {
                     selectedEntry = null;
                     selectedManager = null;
                 }
+                deviceOk = null;
                 updateButtons();
             }
             @Override public void onNothingSelected(AdapterView<?> parent) {
                 selectedEntry = null;
                 selectedManager = null;
+                deviceOk = null;
                 updateButtons();
             }
         });
@@ -225,18 +243,15 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         btnDownloadManager.setOnClickListener(v -> downloadManager());
         btnRun.setOnClickListener(v -> {
             btnRun.setEnabled(false);
-            if (isRootActive()) {
-                mExec.execute(this::revertExploit);
-            } else {
-                outputView.setText("");
-                mExec.execute(this::runExploit);
-            }
+            outputView.setText("");
+            mExec.execute(this::runExploit);
         });
 
+        IntentFilter downloadFilter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(downloadReceiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE), Context.RECEIVER_EXPORTED);
+            registerReceiver(downloadReceiver, downloadFilter, Context.RECEIVER_NOT_EXPORTED);
         } else {
-            registerReceiver(downloadReceiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+            registerReceiver(downloadReceiver, downloadFilter);
         }
 
         updateButtons();
@@ -257,20 +272,51 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         loadManagers();
     }
 
+    private void setLogExpanded(boolean expanded) {
+        isLogExpanded = expanded;
+        if (logContentContainer != null) logContentContainer.setVisibility(expanded ? View.VISIBLE : View.GONE);
+        if (btnToggleLog != null) btnToggleLog.setImageResource(expanded ? R.drawable.ic_expand_less : R.drawable.ic_expand_more);
+    }
+
     private List<ManagerEntry> createKnownManagers() {
         List<ManagerEntry> list = new ArrayList<>();
 
-        // 1. Official KernelSU
+        // Samsung kernels only accept the diabl0w fork's ksud, so on a Samsung
+        // device the other managers are hidden instead of offering a broken run.
+        boolean isSamsung = Build.MANUFACTURER.equalsIgnoreCase("samsung")
+                || Build.BRAND.equalsIgnoreCase("samsung");
+        if (isSamsung) {
+            list.add(new ManagerEntry(
+                    "Samsung KernelSU",
+                    "diabl0w fork · required for Samsung kernels",
+                    "diabl0w/KernelSU",
+                    "https://github.com/diabl0w/KernelSU/releases",
+                    "me.weishu.kernelsu",
+                    Collections.singletonList("me.weishu.kernelsu")
+            ));
+            return list;
+        }
+
+        // OriginSU is first, and the installed-first sort below is stable, so it
+        // stays the default selection until something else is installed.
+        list.add(new ManagerEntry(
+                "OriginSU",
+                "KernelSU fork · modern manager (recommended)",
+                "samakshkambxj/OriginSU",
+                "https://github.com/samakshkambxj/OriginSU/releases/latest",
+                "com.originsu.manager",
+                Collections.singletonList("com.originsu.manager")
+        ));
+
         list.add(new ManagerEntry(
                 "Official KernelSU",
-                "Original project · Standard Manager",
+                "Original project · standard manager",
                 "tiann/KernelSU",
                 "https://github.com/tiann/KernelSU/releases/latest",
                 "me.weishu.kernelsu",
                 Collections.singletonList("me.weishu.kernelsu")
         ));
 
-        // 2. KernelSU-Next
         list.add(new ManagerEntry(
                 "KernelSU-Next",
                 "Extended kernel support and SUSFS integration",
@@ -280,17 +326,15 @@ public class MainActivity extends AppCompatActivity implements IReporter {
                 Arrays.asList("com.rifs.kernelsu", "com.kernelsu.next")
         ));
 
-        // 3. BakaSU
         list.add(new ManagerEntry(
                 "BakaSU",
-                "Formerly ReSukiSU; multi-manager support",
+                "Formerly ReSukiSU · multi-manager support",
                 "Baka-SU/BakaSU",
                 "https://github.com/Baka-SU/BakaSU/releases/latest",
                 "com.baka.sukisu",
                 Arrays.asList("com.baka.sukisu", "io.github.bakasu")
         ));
 
-        // 4. SukiSU-Ultra
         list.add(new ManagerEntry(
                 "SukiSU-Ultra",
                 "KPM support and SUSFS management",
@@ -300,20 +344,15 @@ public class MainActivity extends AppCompatActivity implements IReporter {
                 Arrays.asList("com.sukisu.ultra", "com.sukisu.manager", "com.resukisu.manager")
         ));
 
-        // 5. Samsung KernelSU (diabl0w) - ONLY for Samsung phones!
-        boolean isSamsung = Build.MANUFACTURER.equalsIgnoreCase("samsung") || Build.BRAND.equalsIgnoreCase("samsung");
-        if (isSamsung) {
-            list.add(new ManagerEntry(
-                    "Samsung KernelSU",
-                    "Diabl0w fork · Optimized for Samsung Knox & Kernels",
-                    "diabl0w/KernelSU",
-                    "https://github.com/diabl0w/KernelSU/releases",
-                    "me.weishu.kernelsu",
-                    Collections.singletonList("me.weishu.kernelsu")
-            ));
-        }
-
         return list;
+    }
+
+    private Drawable iconFor(PackageManager pm, ApplicationInfo app) {
+        Drawable cached = iconCache.get(app.packageName);
+        if (cached != null) return cached;
+        Drawable icon = pm.getApplicationIcon(app);
+        iconCache.put(app.packageName, icon);
+        return icon;
     }
 
     private void loadManagers() {
@@ -331,8 +370,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
                     ApplicationInfo app = pm.getApplicationInfo(pkg, 0);
                     entry.isInstalled = true;
                     entry.installedPackageName = pkg;
-                    entry.appLabel = pm.getApplicationLabel(app);
-                    entry.appIcon = pm.getApplicationIcon(app);
+                    entry.appIcon = iconFor(pm, app);
                     entry.hasKsud = ExploitRunner.hasKsud(app);
                     claimedPackages.add(pkg);
                     break;
@@ -357,9 +395,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
                 customEntry.isInstalled = true;
                 customEntry.hasKsud = true;
                 customEntry.installedPackageName = app.packageName;
-                customEntry.appLabel = pm.getApplicationLabel(app);
-                customEntry.appIcon = pm.getApplicationIcon(app);
-                customEntry.isCustom = true;
+                customEntry.appIcon = iconFor(pm, app);
                 managers.add(customEntry);
                 claimedPackages.add(app.packageName);
             }
@@ -402,17 +438,30 @@ public class MainActivity extends AppCompatActivity implements IReporter {
     }
 
     private boolean isRootActive() {
-        if (isStoppedByUser) return false;
-        if (!new File("/dev/tr").exists()) return false;
-        try {
-            Process p = Runtime.getRuntime().exec(new String[]{"su", "-c", "id"});
-            BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-            String line = reader.readLine();
-            p.waitFor();
-            return line != null && line.contains("uid=0");
-        } catch (Exception e) {
-            return false;
+        if (isExploitActive) return true;
+        if (new File("/dev/tr").exists() || new File("/dev/trm6").exists() || new File("/dev/trm5").exists()) {
+            return true;
         }
+        // su can block on a root prompt, so probe it off the UI thread and cache the answer.
+        long now = System.currentTimeMillis();
+        if (now - externalRootCheckedAt > 5000) {
+            externalRootCheckedAt = now;
+            Thread probe = new Thread(() -> {
+                try {
+                    Process p = Runtime.getRuntime().exec(new String[]{"su", "-c", "id"});
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                    String line = reader.readLine();
+                    p.waitFor();
+                    externalRoot = line != null && line.contains("uid=0");
+                } catch (Exception e) {
+                    externalRoot = false;
+                }
+                mMain.post(this::updateButtons);
+            }, "temporaryroot-su-probe");
+            probe.setDaemon(true);
+            probe.start();
+        }
+        return externalRoot;
     }
 
     private void updateButtons() {
@@ -420,75 +469,70 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         boolean hasDownload = selectedEntry != null && (selectedEntry.githubRepo != null || selectedEntry.fallbackWebUrl != null);
         boolean isActive = isRootActive();
 
+        boolean dotOk = isActive || Boolean.TRUE.equals(deviceOk) || (deviceOk == null && isInstalled);
+        boolean canRun = isInstalled && (deviceOk == null || deviceOk);
         btnOpenManager.setEnabled(isInstalled);
         btnDownloadManager.setEnabled(hasDownload);
+        if (statusDot != null) {
+            statusDot.setBackgroundTintList(ColorStateList.valueOf(
+                    getColor(dotOk ? R.color.badge_ok_text : R.color.badge_warn_text)));
+        }
 
         if (isActive) {
-            btnRun.setEnabled(true);
-            btnRun.setText("Stop Temporary Root");
-            btnRun.setBackgroundTintList(ColorStateList.valueOf(0xFFEF4444));
-            statusView.setText("Temporary Root Active • Tap 'Stop' to unload without reboot");
+            btnRun.setEnabled(false);
+            btnRun.setText("Temporary Root Active");
+            if (deviceOk == null) statusView.setText("Temporary Root Active • Reboot device to unload");
         } else {
-            btnRun.setEnabled(isInstalled);
+            btnRun.setEnabled(canRun);
             btnRun.setText("Start Temporary Root");
-            btnRun.setBackgroundTintList(ColorStateList.valueOf(0xFF6096FF));
+            if (deviceOk != null) return;
             if (selectedEntry == null) {
-                statusView.setText("Select a KernelSU manager to continue");
+                statusView.setText("Pick a root manager to continue");
             } else if (isInstalled) {
-                statusView.setText("Ready • " + selectedEntry.title + " (" + selectedEntry.installedPackageName + ")");
+                statusView.setText("Ready • " + selectedEntry.title);
             } else if (selectedEntry.isInstalled && !selectedEntry.hasKsud) {
-                statusView.setText("Warning: " + selectedEntry.title + " is installed but missing libksud.so");
+                statusView.setText(selectedEntry.title + " is installed but has no libksud.so — reinstall it");
             } else {
-                statusView.setText(selectedEntry.title + " is not installed. Tap 'Download' to fetch APK directly.");
+                statusView.setText(selectedEntry.title + " is not installed. Tap Download to get the APK.");
             }
         }
     }
 
     private void checkDevice() {
-        CompatibilityResult result = strategy.inspectRunningDevice(this, selectedManager);
-        outputView.setText("[Device check]\n" + result.asText() + "\n\nKernel: " + System.getProperty("os.version", "unknown") + "\nAndroid security patch: " + Build.VERSION.SECURITY_PATCH + "\n");
-        statusView.setText(result.title);
+        outputView.setText("");
+        statusView.setText("Checking device…");
+        VulnerabilityStrategy selected = strategy;
+        mExec.execute(() -> {
+            CompatibilityResult result = selected.inspectRunningDevice(this, selectedManager, this);
+            mMain.post(() -> {
+                if (selected != strategy) return;
+                setLogExpanded(true);
+                outputView.append("\n" + result.asText() + "\n");
+                deviceOk = result.ok;
+                updateButtons();
+                statusView.setText(result.title);
+            });
+        });
     }
 
     private void runExploit() {
         try {
-            isStoppedByUser = false;
             int rc = strategy.launch(mDeCtx, this);
-            if (rc != 0) {
-                isStoppedByUser = true;
-                File devTr = new File("/dev/tr");
-                if (devTr.exists()) {
-                    devTr.delete();
-                }
+            if (rc == 0) {
+                isExploitActive = true;
+            } else {
+                isExploitActive = false;
             }
             String msg = rc == 0 ? "Temporary Root: SUCCESS" : "Temporary Root: Error (code " + rc + ")";
             report("\n" + msg + "\n");
             if (rc == 0 && mDeCtx.getSharedPreferences(ExploitRunner.PREFS_NAME, MODE_PRIVATE).getBoolean(ExploitRunner.PREF_OPEN_MANAGER, true)) {
-                mMain.post(this::openManager);
+                mMain.postDelayed(this::openManager, 2500);
             }
             mMain.post(() -> Toast.makeText(this, msg, Toast.LENGTH_LONG).show());
         } catch (Exception e) {
-            isStoppedByUser = true;
-            File devTr = new File("/dev/tr");
-            if (devTr.exists()) {
-                devTr.delete();
-            }
+            isExploitActive = false;
             Log.e(TAG, "exploit exception", e);
             report("\nexception: " + e + "\n");
-        } finally {
-            mMain.post(this::updateButtons);
-        }
-    }
-
-    private void revertExploit() {
-        try {
-            isStoppedByUser = true;
-            int rc = strategy.revert(mDeCtx, this);
-            String msg = rc == 0 ? "Stop Temporary Root: SUCCESS" : "Stop Error (code " + rc + ")";
-            mMain.post(() -> Toast.makeText(this, msg, Toast.LENGTH_LONG).show());
-        } catch (Exception e) {
-            Log.e(TAG, "revert exception", e);
-            report("\nrevert exception: " + e + "\n");
         } finally {
             mMain.post(this::updateButtons);
         }
@@ -506,19 +550,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
 
     private void downloadManager() {
         if (selectedEntry == null) return;
-
-        // Pre-download check: Check if unknown app sources permission is granted on Android 8.0+
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !getPackageManager().canRequestPackageInstalls()) {
-            Toast.makeText(this, "Please enable 'Allow from this source' permission to install downloaded APKs", Toast.LENGTH_LONG).show();
-            try {
-                Intent allowIntent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
-                        .setData(Uri.parse("package:" + getPackageName()))
-                        .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(allowIntent);
-            } catch (Exception ignored) {
-            }
-            return;
-        }
+        if (!ensureInstallPermission()) return;
 
         btnDownloadManager.setEnabled(false);
         statusView.setText("Fetching latest " + selectedEntry.title + " release APK…");
@@ -547,20 +579,28 @@ public class MainActivity extends AppCompatActivity implements IReporter {
 
                         JSONObject release = new JSONObject(sb.toString());
                         JSONArray assets = release.optJSONArray("assets");
+                        int standardScore = -1;
+                        int spoofedScore = -1;
                         if (assets != null) {
                             for (int i = 0; i < assets.length(); i++) {
                                 JSONObject asset = assets.getJSONObject(i);
                                 String name = asset.optString("name", "");
                                 String downloadUrl = asset.optString("browser_download_url", "");
-                                if (name.endsWith(".apk") && !downloadUrl.isEmpty()) {
-                                    String lower = name.toLowerCase();
-                                    if (lower.contains("spoof") || lower.contains("spoofed")) {
+                                if (!name.endsWith(".apk") || downloadUrl.isEmpty()) continue;
+
+                                int score = apkScore(name);
+                                if (score < 0) continue;
+                                String lower = name.toLowerCase();
+                                if (lower.contains("spoof")) {
+                                    if (score > spoofedScore) {
+                                        spoofedScore = score;
                                         spoofedUrl = downloadUrl;
                                         spoofedFileName = name;
-                                    } else if (standardUrl == null) {
-                                        standardUrl = downloadUrl;
-                                        standardFileName = name;
                                     }
+                                } else if (score > standardScore) {
+                                    standardScore = score;
+                                    standardUrl = downloadUrl;
+                                    standardFileName = name;
                                 }
                             }
                         }
@@ -610,27 +650,29 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         });
     }
 
+    /**
+     * Ranks release APKs for this arm64-only build. Negative means unusable.
+     * Releases often attach one APK per ABI (OriginSU does), and the first
+     * asset in the list is not guaranteed to be the arm64 one.
+     */
+    private static int apkScore(String fileName) {
+        String name = fileName.toLowerCase();
+        if (name.contains("x86") || name.contains("riscv")) return -1;
+        if (name.contains("universal")) return 3;
+        if (name.contains("arm64")) return 2;
+        if (name.contains("armeabi")) return 1;
+        return 0;
+    }
+
     private void startDownload(String downloadUrl, String fileName) {
         File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
         File existingFile = new File(downloadsDir, fileName);
         if (existingFile.exists() && existingFile.length() > 1000000) {
             Toast.makeText(this, fileName + " is already downloaded. Opening installer…", Toast.LENGTH_LONG).show();
             statusView.setText(fileName + " is already downloaded. Launching installer…");
-            
-            Uri apkUri = Uri.fromFile(existingFile);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                try {
-                    apkUri = FileProvider.getUriForFile(this, getPackageName() + ".provider", existingFile);
-                } catch (Exception e) {
-                    apkUri = Uri.fromFile(existingFile);
-                }
-            }
-            Intent install = new Intent(Intent.ACTION_VIEW);
-            install.setDataAndType(apkUri, "application/vnd.android.package-archive");
-            install.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
             try {
-                startActivity(install);
-                return;
+                Uri apkUri = FileProvider.getUriForFile(this, getPackageName() + ".provider", existingFile);
+                if (installApk(apkUri)) return;
             } catch (Exception e) {
                 Log.w(TAG, "Failed to open existing file: " + e.getMessage());
             }
@@ -663,19 +705,6 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         startActivity(Intent.createChooser(new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, outputView.getText().toString()), "Share log"));
     }
 
-    @Override public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.main_menu, menu);
-        return true;
-    }
-
-    @Override public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.action_settings) {
-            startActivity(new Intent(this, SettingsActivity.class));
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
-
     public static class ManagerEntry {
         public final String title;
         public final String description;
@@ -687,9 +716,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         public boolean isInstalled;
         public boolean hasKsud;
         public String installedPackageName;
-        public CharSequence appLabel;
         public Drawable appIcon;
-        public boolean isCustom;
 
         public ManagerEntry(String title, String description, String githubRepo, String fallbackWebUrl, String defaultPackageName, List<String> candidatePackages) {
             this.title = title;
@@ -713,19 +740,27 @@ public class MainActivity extends AppCompatActivity implements IReporter {
 
     private static class ManagerAdapter extends ArrayAdapter<ManagerEntry> {
         private final Context context;
-        private final List<ManagerEntry> items;
 
         ManagerAdapter(Context context, List<ManagerEntry> items) {
             super(context, R.layout.item_su_manager_closed, items);
             this.context = context;
-            this.items = items;
         }
 
-        private static Drawable createBadgeBackground(int color) {
+        private Drawable createBadgeBackground(int colorRes) {
             GradientDrawable gd = new GradientDrawable();
-            gd.setCornerRadius(10f);
-            gd.setColor(color);
+            gd.setCornerRadius(100f * context.getResources().getDisplayMetrics().density);
+            gd.setColor(context.getColor(colorRes));
             return gd;
+        }
+
+        private void bindIcon(View v, ManagerEntry item) {
+            ImageView iconView = v.findViewById(R.id.iconApp);
+            if (item.appIcon != null) {
+                iconView.setImageDrawable(item.appIcon);
+                iconView.setVisibility(View.VISIBLE);
+            } else {
+                iconView.setVisibility(View.GONE);
+            }
         }
 
         @Override
@@ -734,31 +769,11 @@ public class MainActivity extends AppCompatActivity implements IReporter {
             if (v == null) {
                 v = LayoutInflater.from(context).inflate(R.layout.item_su_manager_closed, parent, false);
             }
-            ManagerEntry item = items.get(position);
-            ImageView iconView = v.findViewById(R.id.iconApp);
-            TextView titleView = v.findViewById(R.id.titleApp);
-            TextView subtitleView = v.findViewById(R.id.subtitleApp);
-            TextView badgeView = v.findViewById(R.id.statusBadge);
-
-            titleView.setText(item.title);
-            if (item.isInstalled) {
-                if (item.appIcon != null) {
-                    iconView.setImageDrawable(item.appIcon);
-                    iconView.setVisibility(View.VISIBLE);
-                } else {
-                    iconView.setVisibility(View.GONE);
-                }
-                subtitleView.setText(item.installedPackageName);
-                badgeView.setText("INSTALLED");
-                badgeView.setTextColor(0xFF4ADE80);
-                badgeView.setBackground(createBadgeBackground(0xFF143820));
-            } else {
-                iconView.setVisibility(View.GONE);
-                subtitleView.setText(item.description);
-                badgeView.setText("NOT INSTALLED");
-                badgeView.setTextColor(0xFFFB923C);
-                badgeView.setBackground(createBadgeBackground(0xFF3A2010));
-            }
+            ManagerEntry item = getItem(position);
+            ((TextView) v.findViewById(R.id.titleApp)).setText(item.title);
+            ((TextView) v.findViewById(R.id.subtitleApp))
+                    .setText(item.isInstalled ? item.installedPackageName : item.description);
+            bindIcon(v, item);
             return v;
         }
 
@@ -768,8 +783,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
             if (v == null) {
                 v = LayoutInflater.from(context).inflate(R.layout.item_su_manager, parent, false);
             }
-            ManagerEntry item = items.get(position);
-            ImageView iconView = v.findViewById(R.id.iconApp);
+            ManagerEntry item = getItem(position);
             TextView titleView = v.findViewById(R.id.titleApp);
             TextView subtitleView = v.findViewById(R.id.subtitleApp);
             TextView packageView = v.findViewById(R.id.packageApp);
@@ -777,24 +791,18 @@ public class MainActivity extends AppCompatActivity implements IReporter {
 
             titleView.setText(item.title);
             subtitleView.setText(item.description);
+            bindIcon(v, item);
 
             if (item.isInstalled) {
-                if (item.appIcon != null) {
-                    iconView.setImageDrawable(item.appIcon);
-                    iconView.setVisibility(View.VISIBLE);
-                } else {
-                    iconView.setVisibility(View.GONE);
-                }
                 packageView.setText("Package: " + item.installedPackageName + (item.hasKsud ? "" : " (no libksud.so)"));
                 badgeView.setText(item.hasKsud ? "INSTALLED" : "MISSING KSUD");
-                badgeView.setTextColor(item.hasKsud ? 0xFF4ADE80 : 0xFFF87171);
-                badgeView.setBackground(createBadgeBackground(item.hasKsud ? 0xFF143820 : 0xFF3F1D1D));
+                badgeView.setTextColor(context.getColor(item.hasKsud ? R.color.badge_ok_text : R.color.badge_bad_text));
+                badgeView.setBackground(createBadgeBackground(item.hasKsud ? R.color.badge_ok_bg : R.color.badge_bad_bg));
             } else {
-                iconView.setVisibility(View.GONE);
                 packageView.setText("Package: " + item.defaultPackageName);
                 badgeView.setText("NOT INSTALLED");
-                badgeView.setTextColor(0xFFFB923C);
-                badgeView.setBackground(createBadgeBackground(0xFF3A2010));
+                badgeView.setTextColor(context.getColor(R.color.badge_warn_text));
+                badgeView.setBackground(createBadgeBackground(R.color.badge_warn_bg));
             }
             return v;
         }

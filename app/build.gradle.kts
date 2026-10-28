@@ -48,11 +48,14 @@ android {
     buildTypes {
         debug {
             isDebuggable = true
+            isMinifyEnabled = false
             signingConfig = signingConfigs.getByName("debug")
         }
         release {
             signingConfigs.findByName("release")?.let {
                 signingConfig = it
+            } ?: run {
+                signingConfig = signingConfigs.getByName("debug")
             }
             isMinifyEnabled = true
             isShrinkResources = true
@@ -65,10 +68,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 
-    lint {
-        checkReleaseBuilds = false
-    }
-
     externalNativeBuild {
         cmake {
             path("src/main/jni/CMakeLists.txt")
@@ -77,6 +76,8 @@ android {
 
     packaging {
         jniLibs {
+            // libtemproot.so is exec'd straight from nativeLibraryDir, so it must be
+            // extracted at install time. Do not switch to unextracted packaging.
             useLegacyPackaging = true
         }
     }
@@ -94,5 +95,4 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.constraintlayout)
-    implementation(libs.androidx.preference)
 }

@@ -1,0 +1,31 @@
+<resources>
+    <!-- Surfaces -->
+    <color name="surface">#111318</color>
+    <color name="surface_low">#171A20</color>
+    <color name="surface_container">#1B1E24</color>
+    <color name="surface_container_high">#23262C</color>
+    <color name="surface_container_highest">#2A2E35</color>
+    <color name="console">#0B0D10</color>
+
+    <!-- Content -->
+    <color name="on_surface">#E3E6EB</color>
+    <color name="on_surface_variant">#A2A6AE</color>
+    <color name="outline">#4A4D55</color>
+    <color name="outline_variant">#33373E</color>
+
+    <!-- Accent -->
+    <color name="primary">#A8C7FA</color>
+    <color name="on_primary">#0B1D31</color>
+    <color name="primary_container">#284777</color>
+    <color name="on_primary_container">#D6E3FF</color>
+    <color name="secondary_container">#284777</color>
+    <color name="on_secondary_container">#D6E3FF</color>
+
+    <!-- Status -->
+    <color name="badge_ok_text">#8ED5A5</color>
+    <color name="badge_ok_bg">#173322</color>
+    <color name="badge_warn_text">#F5C66B</color>
+    <color name="badge_warn_bg">#322A12</color>
+    <color name="badge_bad_text">#FF9B9B</color>
+    <color name="badge_bad_bg">#331A1E</color>
+</resources>

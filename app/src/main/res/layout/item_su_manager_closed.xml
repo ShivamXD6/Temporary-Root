@@ -1,63 +1,59 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingStart="12dp"
-    android:paddingEnd="12dp"
-    android:paddingTop="10dp"
-    android:paddingBottom="10dp">
+    android:minHeight="48dp"
+    android:gravity="center_vertical"
+    android:paddingTop="8dp"
+    android:paddingEnd="4dp"
+    android:paddingBottom="8dp">
 
     <ImageView
         android:id="@+id/iconApp"
-        android:layout_width="26dp"
-        android:layout_height="26dp"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
         android:layout_alignParentStart="true"
         android:layout_centerVertical="true"
-        android:layout_marginEnd="10dp"
+        android:layout_marginEnd="12dp"
         android:contentDescription="Manager icon"
         android:visibility="gone" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_toStartOf="@id/statusBadge"
-        android:layout_toEndOf="@id/iconApp"
         android:layout_centerVertical="true"
-        android:orientation="vertical"
-        android:layout_marginEnd="8dp">
+        android:layout_toStartOf="@id/chevron"
+        android:layout_toEndOf="@id/iconApp"
+        android:orientation="vertical">
 
         <TextView
             android:id="@+id/titleApp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="#FFFFFF"
-            android:textSize="14sp"
-            android:textStyle="bold"
+            android:ellipsize="end"
             android:maxLines="1"
-            android:ellipsize="end" />
+            android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+            android:textColor="@color/on_surface" />
 
         <TextView
             android:id="@+id/subtitleApp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="#94A3B8"
-            android:textSize="11sp"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
             android:maxLines="1"
-            android:ellipsize="end" />
+            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+            android:textColor="@color/on_surface_variant" />
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/statusBadge"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+    <ImageView
+        android:id="@+id/chevron"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
         android:layout_alignParentEnd="true"
         android:layout_centerVertical="true"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp"
-        android:paddingTop="3dp"
-        android:paddingBottom="3dp"
-        android:textSize="11sp"
-        android:textStyle="bold"
-        android:includeFontPadding="false" />
-
+        android:contentDescription="Expand"
+        android:src="@drawable/ic_expand_more"
+        app:tint="@color/on_surface_variant" />
 </RelativeLayout>

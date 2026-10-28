@@ -4,10 +4,23 @@
 
 # Temporary Root
 
-Temporary Root is an Android research project for establishing a temporary privileged session and handing it to a KernelSU-compatible manager. Its initial implementation uses CVE-2026-43284 (DirtyFrag); additional, independently documented research paths can be added behind the same manager integration.
+Temporary Root is an Android research project for establishing a temporary privileged session and handing it to a KernelSU-compatible manager. It ships two independently documented research paths behind one manager integration:
+
+| Vulnerability | Path | Status |
+|---|---|---|
+| CVE-2026-43284 (DirtyFrag) | Kernel page-cache ESP write, then a per-KMI module | Bundled, runs on GKI |
+| CVE-2026-43499 (GhostLock) | Futex PI use-after-free driven by a per-`uname -r` kernel profile | Detection only in this build |
 
 > [!IMPORTANT]
 > Before hitting that fork button, consider making a pull request instead :)
+
+## Requirements
+
+- **DirtyFrag**: GKI kernel only — Android 12+ on a 5.10, 5.15, 6.1, 6.6, 6.12 or 6.18 kernel branch. Non-GKI 4.x kernels (4.9 / 4.14 / 4.19) are not supported: they have no Kernel Module Interface, so no shipped module can load on them. A kernel with `CONFIG_MODULE_SIG_FORCE=y` cannot load the unsigned module either.
+- **GhostLock**: an exact `uname -r` match in the profile list. Profiles are fetched from the [upstream project](https://github.com/YuKongA/ghostlock-app) at check time and cached; the exploit core itself is not bundled in this build, so the app reports support but cannot run this path yet.
+- A KernelSU-compatible manager that ships `libksud.so`.
+
+Run **Check device compatibility** — it decides by a live probe (DirtyFrag) or the profile list (GhostLock), not by the kernel version alone.
 
 ## FAQ
 
@@ -17,6 +30,10 @@ A: Sorry, there is no fix. Either:
   - Your device's kernel is too new
   - Your device manufacturer backported the official mitigation
   - [Accidental mitigation](https://github.com/V4bel/dirtyfrag/issues/23#issuecomment-4405314290) (typically seen on kernel 6.1)
+
+**Q: Log says "Unsupported kernel"**
+
+A: Your kernel branch is not in the module list. Only the GKI branches above are built; vendor kernels with a different `vermagic` cannot load these modules.
 
 **Q: Log says "SUCCESS" or "ksud exited with error", but I don't have root**
 
@@ -36,13 +53,12 @@ A: Typically Android will detect bootloops and boot you into Safe Mode, otherwis
 > I am not responsible for any damage to your device.
 
 1. Build and install Temporary Root.
-2. Install a SU Manager from below:
-   - Samsung:
-     - [diabl0w's KernelSU](https://github.com/diabl0w/KernelSU/releases/latest)
-   - Other:
-     - [KernelSU](https://github.com/tiann/KernelSU/releases/latest)
-     - [KernelSU-Next](https://github.com/KernelSU-Next/KernelSU-Next/releases/latest)
-     - [KowSU](https://github.com/KOWX712/KernelSU/releases/latest)
+2. Pick a root manager in the app and tap **Download** — the APK is fetched from the manager's GitHub releases and installed in place. On a Samsung device only the diabl0w KernelSU fork is offered, because Samsung kernels only accept its `ksud`.
+   - [OriginSU](https://github.com/samakshkambxj/OriginSU/releases/latest) (default)
+   - [KernelSU](https://github.com/tiann/KernelSU/releases/latest)
+   - [KernelSU-Next](https://github.com/KernelSU-Next/KernelSU-Next/releases/latest)
+   - [BakaSU](https://github.com/Baka-SU/BakaSU/releases/latest)
+   - [SukiSU-Ultra](https://github.com/SukiSU-Ultra/SukiSU-Ultra/releases/latest)
 
 > If you have a custom KernelSU fork for a specific manufacturer, please make a pull request to add it here.
 
@@ -50,9 +66,10 @@ A: Typically Android will detect bootloops and boot you into Safe Mode, otherwis
 
 - Start on Boot
 - Automatic soft reboot (if `late-load --soft-reboot` supported by your SU Manager)
-- RO Partition Protection
 - Disable all KernelSU modules, to recover from a broken one
+- Live vulnerability probe instead of a version guess
 - Shizuku not needed — regain root without WiFi!
+- Material 3 UI with bundled Inter, no Play Services dependency
 
 ## How it works
 
@@ -83,7 +100,11 @@ The exploit uses this primitive to patch shellcode into `libc++.so` in the kerne
 
 ## Building
 
+Keystore credentials are never stored in the repository:
+
 ```sh
+export SIGNING_PASS='your-keystore-password'
+export SIGNING_ALIAS='your-key-alias'
 make
 ```
 
@@ -92,3 +113,7 @@ make
 - Original PoC and various code: https://github.com/lsposed/lspromise
 - SELinux Permissive kernel modules and various code: https://github.com/polygraphene/DFReroot
 - Unprivileged XFRM socket method: https://github.com/combeng6th/DirtyInit
+- Vulnerability research (CVE-2026-43284 / CVE-2026-43500): https://github.com/V4bel/dirtyfrag
+- GhostLock (CVE-2026-43499) profile format and research: https://github.com/YuKongA/ghostlock-app
+- Inter typeface (SIL Open Font License 1.1): https://github.com/rsms/inter
+- `include.inc` contains code Copyright © 2018 Odzhan, BSD-3-Clause

@@ -5,7 +5,7 @@ enable_language(ASM)
 set(JNI_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} -I${JNI_DIR}")
-set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} ${C_FLAGS} -I${JNI_DIR} -Wall -Wextra -fno-stack-protector -fomit-frame-pointer")
+set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} ${C_FLAGS} -I${JNI_DIR} -Os -fvisibility=hidden -fdata-sections -ffunction-sections -Wall -Wextra -fno-stack-protector -fomit-frame-pointer")
 
 set(SPLICEHELPER "${JNI_DIR}/splicehelper")
 add_custom_command(
@@ -47,11 +47,11 @@ set_source_files_properties(exp.c PROPERTIES
     OBJECT_DEPENDS "${KO_FILES};${SPLICEHELPER}")
 
 target_link_libraries(temproot log)
-target_link_options(temproot PRIVATE -Wl,-z,max-page-size=16384)
+target_link_options(temproot PRIVATE -Wl,-z,max-page-size=16384 -Wl,--gc-sections -Wl,--strip-all)
 
 add_executable(bootstrap bootstrap.c)
 set_target_properties(bootstrap PROPERTIES
     PREFIX "lib"
     SUFFIX ".so"
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
-target_link_options(bootstrap PRIVATE -Wl,-z,max-page-size=16384)
+target_link_options(bootstrap PRIVATE -Wl,-z,max-page-size=16384 -Wl,--gc-sections -Wl,--strip-all)

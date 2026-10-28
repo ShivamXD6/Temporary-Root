@@ -4,340 +4,370 @@
     android:id="@+id/settingsRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="#000000">
+    android:background="@color/surface"
+    android:orientation="vertical">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/settingsToolbar"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="#000000"
+        android:layout_height="64dp"
+        android:background="@android:color/transparent"
         app:navigationIcon="?attr/homeAsUpIndicator"
-        app:navigationIconTint="#6096FF"
-        app:title="Configurations"
-        app:titleTextColor="#FFFFFF" />
+        app:navigationIconTint="@color/on_surface"
+        app:title="Configuration"
+        app:titleTextAppearance="@style/TextAppearance.Material3.TitleLarge"
+        app:titleTextColor="@color/on_surface" />
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:paddingTop="8dp"
-        android:paddingBottom="16dp">
+        android:clipToPadding="false"
+        android:paddingStart="20dp"
+        android:paddingTop="4dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="24dp"
+        android:scrollbars="none">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- 1. Launch Manager After Success -->
+            <!-- 1. Launch manager after success -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardOpenManager"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
+                android:layout_marginBottom="10dp"
                 android:clickable="true"
                 android:focusable="true"
-                app:cardCornerRadius="16dp"
-                app:strokeWidth="2dp">
+                app:cardBackgroundColor="@color/surface_container"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp">
 
-                <RelativeLayout
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="@drawable/bg_row_ripple"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
                     android:padding="16dp">
 
-                    <ImageView
-                        android:id="@+id/iconOpenManager"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:layout_alignParentStart="true"
-                        android:layout_centerVertical="true"
-                        android:layout_marginEnd="14dp"
-                        android:contentDescription="Icon"
-                        android:src="@drawable/ic_open_manager"
-                        app:tint="#6096FF" />
+                    <FrameLayout
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="@drawable/bg_icon_circle">
+
+                        <ImageView
+                            android:id="@+id/iconOpenManager"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="Launch manager"
+                            android:src="@drawable/ic_open_manager"
+                            app:tint="@color/on_primary_container" />
+                    </FrameLayout>
 
                     <LinearLayout
-                        android:layout_width="match_parent"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_toEndOf="@id/iconOpenManager"
-                        android:layout_toStartOf="@id/switchOpenManager"
-                        android:layout_centerVertical="true"
-                        android:orientation="vertical"
-                        android:layout_marginEnd="8dp">
+                        android:layout_marginStart="14dp"
+                        android:layout_marginEnd="10dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Launch Manager After Success"
-                            android:textColor="#FFFFFF"
-                            android:textSize="15sp"
-                            android:textStyle="bold" />
+                            android:text="Launch manager after success"
+                            android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                            android:textColor="@color/on_surface" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Automatically open the selected manager after exploit succeeds"
-                            android:textColor="#94A3B8"
-                            android:textSize="12sp"
-                            android:layout_marginTop="2dp" />
+                            android:layout_marginTop="2dp"
+                            android:text="Open the selected manager once root is up"
+                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textColor="@color/on_surface_variant" />
                     </LinearLayout>
 
                     <com.google.android.material.materialswitch.MaterialSwitch
                         android:id="@+id/switchOpenManager"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true" />
-                </RelativeLayout>
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- 2. Start at Boot -->
+            <!-- 2. Start at boot -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardBootStart"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
+                android:layout_marginBottom="10dp"
                 android:clickable="true"
                 android:focusable="true"
-                app:cardCornerRadius="16dp"
-                app:strokeWidth="2dp">
+                app:cardBackgroundColor="@color/surface_container"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp">
 
-                <RelativeLayout
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="@drawable/bg_row_ripple"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
                     android:padding="16dp">
 
-                    <ImageView
-                        android:id="@+id/iconBootStart"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:layout_alignParentStart="true"
-                        android:layout_centerVertical="true"
-                        android:layout_marginEnd="14dp"
-                        android:contentDescription="Icon"
-                        android:src="@drawable/ic_boot"
-                        app:tint="#6096FF" />
+                    <FrameLayout
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="@drawable/bg_icon_circle">
+
+                        <ImageView
+                            android:id="@+id/iconBootStart"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="Start at boot"
+                            android:src="@drawable/ic_boot"
+                            app:tint="@color/on_primary_container" />
+                    </FrameLayout>
 
                     <LinearLayout
-                        android:layout_width="match_parent"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_toEndOf="@id/iconBootStart"
-                        android:layout_toStartOf="@id/switchBootStart"
-                        android:layout_centerVertical="true"
-                        android:orientation="vertical"
-                        android:layout_marginEnd="8dp">
+                        android:layout_marginStart="14dp"
+                        android:layout_marginEnd="10dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Start at Boot"
-                            android:textColor="#FFFFFF"
-                            android:textSize="15sp"
-                            android:textStyle="bold" />
+                            android:text="Start at boot"
+                            android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                            android:textColor="@color/on_surface" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Automatically run Temporary Root when device boots"
-                            android:textColor="#94A3B8"
-                            android:textSize="12sp"
-                            android:layout_marginTop="2dp" />
+                            android:layout_marginTop="2dp"
+                            android:text="Run Temporary Root when the device boots"
+                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textColor="@color/on_surface_variant" />
                     </LinearLayout>
 
                     <com.google.android.material.materialswitch.MaterialSwitch
                         android:id="@+id/switchBootStart"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true" />
-                </RelativeLayout>
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- 3. Auto Soft Reboot -->
+            <!-- 3. Auto soft reboot -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardSoftReboot"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
+                android:layout_marginBottom="10dp"
                 android:clickable="true"
                 android:focusable="true"
-                app:cardCornerRadius="16dp"
-                app:strokeWidth="2dp">
+                app:cardBackgroundColor="@color/surface_container"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp">
 
-                <RelativeLayout
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="@drawable/bg_row_ripple"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
                     android:padding="16dp">
 
-                    <ImageView
-                        android:id="@+id/iconSoftReboot"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:layout_alignParentStart="true"
-                        android:layout_centerVertical="true"
-                        android:layout_marginEnd="14dp"
-                        android:contentDescription="Icon"
-                        android:src="@drawable/ic_soft_reboot"
-                        app:tint="#6096FF" />
+                    <FrameLayout
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="@drawable/bg_icon_circle">
+
+                        <ImageView
+                            android:id="@+id/iconSoftReboot"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="Auto soft reboot"
+                            android:src="@drawable/ic_soft_reboot"
+                            app:tint="@color/on_primary_container" />
+                    </FrameLayout>
 
                     <LinearLayout
-                        android:layout_width="match_parent"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_toEndOf="@id/iconSoftReboot"
-                        android:layout_toStartOf="@id/switchSoftReboot"
-                        android:layout_centerVertical="true"
-                        android:orientation="vertical"
-                        android:layout_marginEnd="8dp">
+                        android:layout_marginStart="14dp"
+                        android:layout_marginEnd="10dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Auto Soft Reboot"
-                            android:textColor="#FFFFFF"
-                            android:textSize="15sp"
-                            android:textStyle="bold" />
+                            android:text="Auto soft reboot"
+                            android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                            android:textColor="@color/on_surface" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Applies soft reboot to finalize root state"
-                            android:textColor="#94A3B8"
-                            android:textSize="12sp"
-                            android:layout_marginTop="2dp" />
+                            android:layout_marginTop="2dp"
+                            android:text="Finalise the root state with a soft reboot"
+                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textColor="@color/on_surface_variant" />
                     </LinearLayout>
 
                     <com.google.android.material.materialswitch.MaterialSwitch
                         android:id="@+id/switchSoftReboot"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true" />
-                </RelativeLayout>
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- 4. Disable KSU Modules -->
+            <!-- 4. Disable KSU modules -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardDisableModules"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
+                android:layout_marginBottom="10dp"
                 android:clickable="true"
                 android:focusable="true"
-                app:cardCornerRadius="16dp"
-                app:strokeWidth="2dp">
+                app:cardBackgroundColor="@color/surface_container"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp">
 
-                <RelativeLayout
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="@drawable/bg_row_ripple"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
                     android:padding="16dp">
 
-                    <ImageView
-                        android:id="@+id/iconDisableModules"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:layout_alignParentStart="true"
-                        android:layout_centerVertical="true"
-                        android:layout_marginEnd="14dp"
-                        android:contentDescription="Icon"
-                        android:src="@drawable/ic_disable_modules"
-                        app:tint="#6096FF" />
+                    <FrameLayout
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="@drawable/bg_icon_circle">
+
+                        <ImageView
+                            android:id="@+id/iconDisableModules"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="Disable KSU modules"
+                            android:src="@drawable/ic_disable_modules"
+                            app:tint="@color/on_primary_container" />
+                    </FrameLayout>
 
                     <LinearLayout
-                        android:layout_width="match_parent"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_toEndOf="@id/iconDisableModules"
-                        android:layout_toStartOf="@id/switchDisableModules"
-                        android:layout_centerVertical="true"
-                        android:orientation="vertical"
-                        android:layout_marginEnd="8dp">
+                        android:layout_marginStart="14dp"
+                        android:layout_marginEnd="10dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Disable KSU Modules"
-                            android:textColor="#FFFFFF"
-                            android:textSize="15sp"
-                            android:textStyle="bold" />
+                            android:text="Disable KSU modules"
+                            android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                            android:textColor="@color/on_surface" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Bypass modules on boot if a broken module causes bootloop"
-                            android:textColor="#94A3B8"
-                            android:textSize="12sp"
-                            android:layout_marginTop="2dp" />
+                            android:layout_marginTop="2dp"
+                            android:text="Skip modules on boot if one bootloops"
+                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textColor="@color/on_surface_variant" />
                     </LinearLayout>
 
                     <com.google.android.material.materialswitch.MaterialSwitch
                         android:id="@+id/switchDisableModules"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true" />
-                </RelativeLayout>
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- 5. Protect Read-Only Partitions -->
+            <!-- 5. About -->
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardProtectPartitions"
+                android:id="@+id/cardAbout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
+                android:layout_marginTop="2dp"
                 android:clickable="true"
                 android:focusable="true"
-                app:cardCornerRadius="16dp"
-                app:strokeWidth="2dp">
+                app:cardBackgroundColor="@color/surface_container"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp">
 
-                <RelativeLayout
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="@drawable/bg_row_ripple"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
                     android:padding="16dp">
 
-                    <ImageView
-                        android:id="@+id/iconProtectPartitions"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:layout_alignParentStart="true"
-                        android:layout_centerVertical="true"
-                        android:layout_marginEnd="14dp"
-                        android:contentDescription="Icon"
-                        android:src="@drawable/ic_disable_modules"
-                        app:tint="#6096FF" />
+                    <FrameLayout
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="@drawable/bg_icon_circle">
+
+                        <ImageView
+                            android:id="@+id/iconAbout"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="About"
+                            android:src="@drawable/ic_info"
+                            app:tint="@color/on_primary_container" />
+                    </FrameLayout>
 
                     <LinearLayout
-                        android:layout_width="match_parent"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_toEndOf="@id/iconProtectPartitions"
-                        android:layout_toStartOf="@id/switchProtectPartitions"
-                        android:layout_centerVertical="true"
-                        android:orientation="vertical"
-                        android:layout_marginEnd="8dp">
+                        android:layout_marginStart="14dp"
+                        android:layout_marginEnd="10dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Protect Read-Only Partitions"
-                            android:textColor="#FFFFFF"
-                            android:textSize="15sp"
-                            android:textStyle="bold" />
+                            android:text="About"
+                            android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                            android:textColor="@color/on_surface" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Mount partitions as read-only to prevent permanent system changes"
-                            android:textColor="#94A3B8"
-                            android:textSize="12sp"
-                            android:layout_marginTop="2dp" />
+                            android:layout_marginTop="2dp"
+                            android:text="Community links, version and credits"
+                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textColor="@color/on_surface_variant" />
                     </LinearLayout>
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switchProtectPartitions"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true" />
-                </RelativeLayout>
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:contentDescription="Open about"
+                        android:src="@drawable/ic_expand_more"
+                        app:tint="@color/on_surface_variant" />
+                </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>

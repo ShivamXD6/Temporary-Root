@@ -21,8 +21,9 @@ DDK_WF      := .github/workflows/build.yml
 DDK_IMAGE   ?= $(shell awk '/image: ghcr\.io\//{gsub(/.*image: /,"");gsub(/:.*$$/,"");print;exit}' $(DDK_WF))
 DDK_RELEASE ?= $(shell awk '/image: ghcr\.io\/ylarod\/ddk-min:/{sub(/.*-/,"");print;exit}' $(DDK_WF))
 
-SIGN_PASS  := df-ksu
-SIGN_ALIAS := df-ksu
+# Keystore credentials are local-only. Export these before `make`.
+SIGN_PASS  ?= $(SIGNING_PASS)
+SIGN_ALIAS ?= $(SIGNING_ALIAS)
 
 LKM_SRCS    := lkm/temproot.c lkm/Makefile
 LKM_KOS     := $(KMIS:%=app/src/main/jni/ko/temproot-%.ko)

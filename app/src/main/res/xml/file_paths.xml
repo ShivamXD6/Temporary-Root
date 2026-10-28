@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- DownloadManager writes manager APKs into the public Downloads folder. -->
+    <external-path
+        name="downloads"
+        path="Download/" />
+</paths>

@@ -1,1 +1,1 @@
--keep class build.bytes.temproot.IReporter { *; }
+# No custom keep rules: nothing is reached through reflection or JNI class lookup.

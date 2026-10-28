@@ -1,16 +1,15 @@
 package build.bytes.temproot;
 
 public final class CompatibilityResult {
-    public enum Status { LIKELY_COMPATIBLE, LIKELY_PATCHED, UNSUPPORTED, UNKNOWN, INVALID_IMAGE }
-
-    public final Status status;
     public final String title;
     public final String details;
+    /** True only when the exploit was confirmed to work on this device. */
+    public final boolean ok;
 
-    public CompatibilityResult(Status status, String title, String details) {
-        this.status = status;
+    public CompatibilityResult(String title, String details, boolean ok) {
         this.title = title;
         this.details = details;
+        this.ok = ok;
     }
 
     public String asText() {

@@ -2,11 +2,11 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingStart="14dp"
-    android:paddingEnd="14dp"
+    android:background="?attr/selectableItemBackground"
+    android:paddingStart="18dp"
     android:paddingTop="12dp"
-    android:paddingBottom="12dp"
-    android:background="#121218">
+    android:paddingEnd="18dp"
+    android:paddingBottom="12dp">
 
     <ImageView
         android:id="@+id/iconApp"
@@ -21,39 +21,40 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
         android:layout_toStartOf="@id/statusBadge"
         android:layout_toEndOf="@id/iconApp"
-        android:layout_centerVertical="true"
-        android:orientation="vertical"
-        android:layout_marginEnd="8dp">
+        android:layout_marginEnd="10dp"
+        android:orientation="vertical">
 
         <TextView
             android:id="@+id/titleApp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="#FFFFFF"
-            android:textSize="15sp"
-            android:textStyle="bold"
+            android:ellipsize="end"
             android:maxLines="1"
-            android:ellipsize="end" />
+            android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+            android:textColor="@color/on_surface" />
 
         <TextView
             android:id="@+id/subtitleApp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="#94A3B8"
-            android:textSize="12sp"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
             android:maxLines="1"
-            android:ellipsize="end" />
+            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+            android:textColor="@color/on_surface_variant" />
 
         <TextView
             android:id="@+id/packageApp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="#64748B"
-            android:textSize="11sp"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
             android:maxLines="1"
-            android:ellipsize="end" />
+            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+            android:textColor="@color/outline" />
     </LinearLayout>
 
     <TextView
@@ -62,12 +63,11 @@
         android:layout_height="wrap_content"
         android:layout_alignParentEnd="true"
         android:layout_centerVertical="true"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp"
-        android:paddingTop="3dp"
-        android:paddingBottom="3dp"
-        android:textSize="11sp"
-        android:textStyle="bold"
-        android:includeFontPadding="false" />
+        android:includeFontPadding="false"
+        android:paddingStart="9dp"
+        android:paddingTop="4dp"
+        android:paddingEnd="9dp"
+        android:paddingBottom="4dp"
+        android:textAppearance="@style/TextAppearance.Material3.LabelSmall" />
 
 </RelativeLayout>

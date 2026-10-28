@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!--
+      Material 3 reads its typeface from these four names. Aliasing them to the
+      bundled Inter cuts re-font the whole app (text appearances, buttons,
+      dialogs, toolbars) without touching a single layout.
+    -->
+    <string name="m3_ref_typeface_plain_regular" translatable="false" tools:ignore="ReferenceType">@font/inter_regular</string>
+    <string name="m3_ref_typeface_plain_medium" translatable="false" tools:ignore="ReferenceType">@font/inter_medium</string>
+    <string name="m3_ref_typeface_brand_regular" translatable="false" tools:ignore="ReferenceType">@font/inter_semibold</string>
+    <string name="m3_ref_typeface_brand_medium" translatable="false" tools:ignore="ReferenceType">@font/inter_semibold</string>
+</resources>
