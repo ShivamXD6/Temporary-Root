@@ -1,113 +1,225 @@
-<p align="center">
-  <img src=".github/icon.png" width="96" />
-</p>
+<!--suppress HtmlDeprecatedAttribute -->
+<div align="center">
+  <img src=".github/icon.png" alt="Temporary Root Icon" width="128"/>
+  <h1>⚡Temporary Root</h1>
+  <p><b>Kernel-level temporary root that hands over to your KernelSU manager — no boot image patching, no Shizuku, no Wi-Fi.</b></p>
 
-# Temporary Root
+[![Downloads](https://img.shields.io/github/downloads/ShivamXD6/Temporary-Root/total?color=green&style=for-the-badge)](../../releases)
+[![Release](https://img.shields.io/github/v/release/ShivamXD6/Temporary-Root?style=for-the-badge)](../../releases)
+[![Join Build Bytes](https://img.shields.io/badge/Join-Build%20Bytes-2CA5E0?style=for-the-badge&logo=telegram)](https://telegram.me/BuildBytes)
+[![Join Chat](https://img.shields.io/badge/Join%20Chat-Build%20Bytes%20Discussion-2CA5E0?style=for-the-badge&logo=telegram)](https://telegram.me/BuildBytesDiscussion)
+![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
+![Root](https://img.shields.io/badge/Root-ff0000?style=for-the-badge&logo=superuser&logoColor=white)
+![KernelSU](https://img.shields.io/badge/KernelSU-000000?style=for-the-badge&logo=linux&logoColor=white)
 
-Temporary Root is an Android research project for establishing a temporary privileged session and handing it to a KernelSU-compatible manager. It ships two independently documented research paths behind one manager integration:
+</div>
 
-| Vulnerability | Path | Status |
-|---|---|---|
-| CVE-2026-43284 (DirtyFrag) | Kernel page-cache ESP write, then a per-KMI module | Bundled, runs on GKI |
-| CVE-2026-43499 (GhostLock) | Futex PI use-after-free driven by a per-`uname -r` kernel profile | Bundled, runs on profiled kernels |
+<br>
 
-> [!IMPORTANT]
-> Before hitting that fork button, consider making a pull request instead :)
+* **Temporary Root** gains a privileged session by exploiting a kernel vulnerability, loads a
+  KernelSU-compatible module, and hands root to the manager you already use. Reboot and the device
+  is back to stock — nothing is written to your boot image.
 
-## Requirements
+* *Note: This project started from the DirtyFrag research. DirtyFrag is one of the two paths it
+  ships now, next to GhostLock.*
 
-- **DirtyFrag**: GKI kernel only — Android 12+ on a 5.10, 5.15, 6.1, 6.6, 6.12 or 6.18 kernel branch. Non-GKI 4.x kernels (4.9 / 4.14 / 4.19) are not supported: they have no Kernel Module Interface, so no shipped module can load on them. A kernel with `CONFIG_MODULE_SIG_FORCE=y` cannot load the unsigned module either.
-- **GhostLock**: an exact `uname -r` match in the upstream profile list. The profile and its shared files are downloaded and compiled on the device; no profile ships in the APK.
-- A KernelSU-compatible manager that ships `libksud.so`.
+---
 
-Run **Check device compatibility** — it decides by a live probe (DirtyFrag) or the profile list (GhostLock), not by the kernel version alone.
+## 📑 Table of Contents
 
-## FAQ
+- [💡 Why Temporary Root?](#-why-temporary-root)
+- [✨ Features](#-features)
+  - [🧪 Compatibility Check](#-compatibility-check)
+  - [🧨 DirtyFrag](#-dirtyfrag)
+  - [👻 GhostLock](#-ghostlock)
+  - [🧩 Root Managers](#-root-managers)
+  - [⚙️ Settings](#️-settings)
+- [📥 Requirements & Installation](#-requirements--installation)
+- [🔬 How It Works](#-how-it-works)
+- [🛠️ Building](#️-building)
+- [❓ FAQ](#-faq)
+- [💖 Support the Project](#-support-the-project)
+- [🙏 Credits](#-credits)
 
-**Q: Log says patching failed and that my device isn't vulnerable**
+---
 
-A: Sorry, there is no fix. Either:
-  - Your device's kernel is too new
-  - Your device manufacturer backported the official mitigation
-  - [Accidental mitigation](https://github.com/V4bel/dirtyfrag/issues/23#issuecomment-4405314290) (typically seen on kernel 6.1)
+## 💡 Why Temporary Root?
 
-**Q: Log says "Unsupported kernel"**
+* Most root methods ask you to unlock, patch and flash a boot image, which is permanent, device
+  specific and easy to get wrong. Temporary Root does the opposite: it stays inside a running
+  Android system, uses a kernel bug for a few seconds, and gives the result to a normal KernelSU
+  manager.
 
-A: Your kernel branch is not in the module list. Only the GKI branches above are built; vendor kernels with a different `vermagic` cannot load these modules.
+* It also solves the boring part — knowing whether your kernel is actually exploitable. The app runs
+  a real probe instead of guessing from a version string, so "compatible" means tested, not assumed.
 
-**Q: Log says "SUCCESS" or "ksud exited with error", but I don't have root**
+* Everything runs on-device. No PC, no Shizuku, no Wi-Fi, no cloud service.
 
-A: First, try disabling "Auto Soft Reboot" in Temporary Root settings.
+---
 
-**Q: I installed a module and now I can't launch root without crashing**
+## ✨ Features
 
-A: Toggle "Disable KSU Modules" in Temporary Root settings.
+### 🧪 Compatibility Check
 
-**Q: I installed a module and have "Start at Boot" enabled and now I am bootlooping**
+*Three gates, and the last one is a live test.*
 
-A: Typically Android will detect bootloops and boot you into Safe Mode, otherwise you can usually hold the Volume Down button during boot to enter safe mode. From there, disable "Start on Boot" and enable "Disable KSU Modules" in Temporary Root settings or uninstall Temporary Root until you stabilize.
+<details>
+<summary><b>How the check decides (Click to Expand)</b></summary>
 
-## Usage
+* Kernel branch gate — DirtyFrag only has modules for the GKI branches it ships (5.10, 5.15, 6.1,
+  6.6, 6.12, 6.18). Non-GKI 4.x kernels are rejected with an explanation instead of a false positive.
+* Module signing gate — if the kernel sets `CONFIG_MODULE_SIG_FORCE=y`, the bundled unsigned modules
+  cannot load, so the check stops there.
+* Live probe — writes 16 bytes into a private temp file's page cache through the real ESP/CBC
+  primitive and reads them back:
+  * pattern changed → **Vulnerable**
+  * unchanged → **Not vulnerable (patched)**
+  * probe could not run → **Check inconclusive**, never a false "compatible"
+* The verdict drives the status dot and the Start button, so you cannot start an exploit the app
+  already knows will fail.
+
+</details>
+
+### 🧨 DirtyFrag
+
+*CVE-2026-43284 — kernel page-cache write through in-place ESP decryption.*
+
+<details>
+<summary><b>Supported kernels (Click to Expand)</b></summary>
+
+* Android 12 → 5.10
+* Android 13 → 5.10, 5.15
+* Android 14 → 5.15, 6.1
+* Android 15 → 6.6
+* Android 16 → 6.12
+* Android 17 → 6.18
+
+The module is picked from your kernel branch and verified with the live probe above. On a kernel
+with the mitigation backported, the probe reports **patched** and Start stays disabled.
+
+</details>
+
+### 👻 GhostLock
+
+*CVE-2026-43499 — futex PI use-after-free, driven by a per-kernel profile.*
+
+<details>
+<summary><b>Why GhostLock needs a profile (Click to Expand)</b></summary>
+
+* GhostLock needs exact offsets for your kernel build, so support is an exact `uname -r` match, not
+  a version range.
+* Nothing is bundled: the app downloads the matching upstream profile and its shared files, compiles
+  them to the GLK1 format on the device, and starts the core with that profile.
+* If upstream has no profile for your build, the check says so and tells you how many profiles exist.
+* Profile generation for a new kernel is done with the upstream extractor from your `boot.img` or an
+  OTA link; that is a separate workflow, not something the app fakes.
+
+</details>
+
+### 🧩 Root Managers
+
+*Bring your own manager — the app only needs it to ship `libksud.so`.*
+
+<details>
+<summary><b>Managers and Samsung handling (Click to Expand)</b></summary>
+
+* Pick a manager in the app and tap **Download** — the APK is fetched from that project's GitHub
+  releases, preferring a universal or arm64 build, and installed in place.
+* [OriginSU](https://github.com/samakshkambxj/OriginSU/releases/latest) is the default.
+* Also listed: [KernelSU](https://github.com/tiann/KernelSU/releases/latest),
+  [KernelSU-Next](https://github.com/KernelSU-Next/KernelSU-Next/releases/latest),
+  [BakaSU](https://github.com/Baka-SU/BakaSU/releases/latest),
+  [SukiSU-Ultra](https://github.com/SukiSU-Ultra/SukiSU-Ultra/releases/latest).
+* On Samsung devices only the [diabl0w KernelSU fork](https://github.com/diabl0w/KernelSU/releases)
+  is offered — Samsung kernels only accept its `ksud`, so showing the others would just be a broken
+  button.
+* Spoofed builds with random package ids are matched by app label, so they keep a working Download
+  button instead of being treated as an unknown manager.
+
+</details>
+
+### ⚙️ Settings
+
+*The few knobs that matter after root is up.*
+
+<details>
+<summary><b>All the Settings (Click to Expand)</b></summary>
+
+* **Launch manager after success** — open the selected manager once root is up.
+* **Start at boot** — run the exploit on boot; the receiver is a normal app component, disable it
+  any time.
+* **Auto soft reboot** — finalise the root state with a soft reboot when the manager supports it.
+* **Disable KSU modules** — skip modules on boot to recover from a bootlooping module.
+* **About** — version, community links and credits.
+
+</details>
+
+---
+
+## 📥 Requirements & Installation
+
+* **DirtyFrag**: GKI kernel — Android 12+ on 5.10, 5.15, 6.1, 6.6, 6.12 or 6.18. Non-GKI 4.x is not
+  supported: those kernels have no Kernel Module Interface, so no shipped module can load.
+* **GhostLock**: an exact `uname -r` profile published upstream.
+* A KernelSU-compatible manager that ships `libksud.so`.
+* Android 12 or newer, arm64 device.
+
+1. Download the latest APK from the [Releases Tab](../../releases).
+2. Open the app and pick a root manager (Download installs it for you).
+3. Tap **Check device compatibility** and read the verdict.
+4. If it says Vulnerable / Supported, tap **Start Temporary Root** and wait for the manager to come up.
 
 > [!WARNING]
-> I am not responsible for any damage to your device.
+> I am not responsible for any damage to your device. A kernel exploit can crash or destabilise a
+> device; that risk is the whole point of keeping it temporary.
 
-1. Build and install Temporary Root.
-2. Pick a root manager in the app and tap **Download** — the APK is fetched from the manager's GitHub releases and installed in place. On a Samsung device only the diabl0w KernelSU fork is offered, because Samsung kernels only accept its `ksud`.
-   - [OriginSU](https://github.com/samakshkambxj/OriginSU/releases/latest) (default)
-   - [KernelSU](https://github.com/tiann/KernelSU/releases/latest)
-   - [KernelSU-Next](https://github.com/KernelSU-Next/KernelSU-Next/releases/latest)
-   - [BakaSU](https://github.com/Baka-SU/BakaSU/releases/latest)
-   - [SukiSU-Ultra](https://github.com/SukiSU-Ultra/SukiSU-Ultra/releases/latest)
+---
 
-> If you have a custom KernelSU fork for a specific manufacturer, please make a pull request to add it here.
+## 🔬 How It Works
 
-## Features
+<details>
+<summary><b>DirtyFrag chain (Click to Expand)</b></summary>
 
-- Start on Boot
-- Automatic soft reboot (if `late-load --soft-reboot` supported by your SU Manager)
-- Disable all KernelSU modules, to recover from a broken one
-- Live vulnerability probe instead of a version guess
-- Shizuku not needed — regain root without WiFi!
-- Material 3 UI with bundled Inter, no Play Services dependency
+1. **IpSec transform** — the app allocates a `UdpEncapsulationSocket` and SPI and builds an
+   AES-CBC/HMAC-SHA256 ESP transform through `IpSecManager`.
+2. **splicehelper → crash_dump64** — the CBC primitive writes a helper into `crash_dump64`'s page
+   cache. `crash_dump64` runs in the `crash_dump` domain, which may open `vendor_file`-labelled
+   files that an app cannot.
+3. **temproot.ko → vendor_file** — the per-KMI module is written through that bridge.
+4. **libc++ hook** — shellcode patched into `libc++.so` runs in init (uid 0, tid 1), creates
+   `/dev/tr` as a one-shot guard, and execs `insmod` in the `vendor_modprobe` domain.
+5. **temproot.ko init** — sets SELinux permissive, bypasses DEFEX where present, and runs the
+   bootstrap through `call_usermodehelper`.
+6. **bootstrap** — stages `ksud` from your manager's native libs and runs `ksud late-load`, which
+   brings up the manager you already have.
 
-## How it works
+</details>
 
-The Android kernel decrypts AES-CBC ESP packets directly into the page cache of files open for `splice()`. By crafting `IV = AES_ECB_DEC(key, current_content) ⊕ desired_content`, any 16-byte-aligned block in a mapped shared library can be overwritten without write permission and without copy-on-write.
+<details>
+<summary><b>GhostLock chain (Click to Expand)</b></summary>
 
-The exploit uses this primitive to patch shellcode into `libc++.so` in the kernel's page cache. The next privileged call to the hooked function runs the shellcode, which loads our custom kernel module via `insmod`.
+1. The app resolves your kernel profile (HOCON) and compiles it into the GLK1 binary format.
+2. `libghostlock.so` loads that profile and runs the futex PI race to hijack a victim thread.
+3. It escalates to `init_cred`, bypasses seccomp, and starts an independent root shell.
+4. That shell locates `ksud` in your installed manager and runs `ksud late-load`.
 
-### Exploit chain
+</details>
 
-1. **IpSec transform** — App allocates a `UdpEncapsulationSocket` + SPI and builds an AES-CBC/HMAC-SHA256 ESP transform via `IpSecManager`.
+---
 
-2. **splicehelper → crash_dump64** — The splicehelper binary is spliced into `crash_dump64` via the CBC primitive. `crash_dump64` runs in the `crash_dump` SELinux domain (via exec label transition), which can open `vendor_file` labeled files (untrusted_app context cannot read these files so we need this bridge). The splicehelper serves two modes: splice mode (pipe a 16-byte page chunk out to the parent for write) and read mode (`argv[3]="r"`, write 16 bytes of file content to a pipe fd for IV computation).
+## 🛠️ Building
 
-3. **temproot.ko → vendor_file** — The kernel module is written via the crash_dump bridge (splicehelper splice mode) into a `vendor_file`-labeled file.
+The native side builds two executables with the NDK: `libtemproot.so` (DirtyFrag, C) and
+`libghostlock.so` (GhostLock, vendored C++23 core in `app/src/main/jni/ghostlock`, Apache-2.0).
+The GhostLock profile compiler is a Kotlin JVM module (`:profile-core`); its host test checks the
+HOCON → GLK1 path without a device.
 
-4. **libc++ hook** (fires in init, uid=0, tid=1) — Shellcode is patched into `libc++.so` at `std::ostream::sentry::sentry()` (`_ZNSt3__113basic_ostreamIcNS_11char_traitsIcEEE6sentryC1ERS3_`). Triggered by: `createOrphanProcess()` double-forks so the grandchild is adopted by PID 1 (init); when init reaps the orphan its main thread (tid=1) calls through the hooked function. The shellcode:
-   - Checks `getuid()==0` and `gettid()==1`; returns immediately otherwise
-   - Creates `/dev/tr` as a one-shot mutex (O_CREAT|O_EXCL) to prevent re-entry
-   - Clones a worker child (parent returns to init immediately)
-   - Worker forks a grandchild; grandchild writes `u:r:vendor_modprobe:s0` to `/proc/self/attr/exec` then execs `/vendor/bin/insmod <ko_target>`
+```sh
+./gradlew :app:assembleDebug      # APK only
+./gradlew :profile-core:test      # profile compiler self-check
+```
 
-5. **temproot.ko init** (runs as `vendor_modprobe`, uid=0) — The KO is loaded by `insmod` in the `vendor_modprobe` SELinux domain:
-   - Writes `false` to `selinux_state` (global permissive)
-   - Bypasses DEFEX via kprobes (if applicable)
-   - Calls `call_usermodehelper` to run our custom bootstrap code
-
-6. **bootstrap.c** — performs various functions and finally launches the su daemon from your installed SU Manager.
-
-## Building
-
-The native side compiles two binaries with the NDK: `libtemproot.so` (DirtyFrag,
-C) and `libghostlock.so` (GhostLock, vendored C++23 core in
-`app/src/main/jni/ghostlock`, Apache-2.0). The GhostLock profile compiler is a
-Kotlin JVM module (`:profile-core`) that turns HOCON profiles into the GLK1
-documents the core reads; `./gradlew :profile-core:test` checks that path
-without a device.
-
-Keystore credentials are never stored in the repository:
+Full release (needs bash + podman, builds every module in the DDK containers):
 
 ```sh
 export SIGNING_PASS='your-keystore-password'
@@ -115,12 +227,78 @@ export SIGNING_ALIAS='your-key-alias'
 make
 ```
 
-## Credits
+Keystore credentials are never stored in the repository.
 
-- Original PoC and various code: https://github.com/lsposed/lspromise
-- SELinux Permissive kernel modules and various code: https://github.com/polygraphene/DFReroot
-- Unprivileged XFRM socket method: https://github.com/combeng6th/DirtyInit
-- Vulnerability research (CVE-2026-43284 / CVE-2026-43500): https://github.com/V4bel/dirtyfrag
-- GhostLock (CVE-2026-43499) profile format and research: https://github.com/YuKongA/ghostlock-app
-- Inter typeface (SIL Open Font License 1.1): https://github.com/rsms/inter
-- `include.inc` contains code Copyright © 2018 Odzhan, BSD-3-Clause
+---
+
+## ❓ FAQ
+
+<details>
+<summary><b>Log says patching failed and my device isn't vulnerable</b></summary>
+
+Either your kernel is too new, your vendor backported the mitigation, or the probe hit the
+accidental mitigation seen on some 6.1 builds. The live probe is the authority here — no fix exists
+for a patched kernel.
+
+</details>
+
+<details>
+<summary><b>Log says "Unsupported kernel"</b></summary>
+
+Your kernel branch is not in the module list. Only the GKI branches above are built; vendor kernels
+with a different `vermagic` cannot load these modules.
+
+</details>
+
+<details>
+<summary><b>Root says SUCCESS or ksud errors, but I don't have root</b></summary>
+
+Disable "Auto soft reboot" in Settings and run again. Some managers need the late-load to settle
+before the reboot.
+
+</details>
+
+<details>
+<summary><b>I installed a module and now root crashes or bootloops</b></summary>
+
+Enable "Disable KSU modules" in Settings. If you cannot boot, Android usually falls back to Safe
+Mode; from there disable "Start at boot" or uninstall the app.
+
+</details>
+
+<details>
+<summary><b>GhostLock says unsupported for my kernel</b></summary>
+
+Upstream publishes profiles only for kernels someone extracted offsets for. Your exact `uname -r`
+is not in that list, and a nearby build string will not work — the offsets differ.
+
+</details>
+
+---
+
+## 💖 Support the Project
+
+Temporary Root is open-source and free. If it saved you a boot image patch, consider supporting the
+work:
+
+* [Sponsor via GitHub](https://github.com/sponsors/ShivamXD6)
+* [Join Build Bytes on Telegram](https://telegram.me/BuildBytes)
+
+---
+
+## 🙏 Credits
+
+* DirtyFrag research: [v4bel](https://github.com/V4bel/dirtyfrag)
+* GhostLock research and profile format: [YuKongA](https://github.com/YuKongA/ghostlock-app)
+* Unprivileged XFRM socket method: [combeng6th/DirtyInit](https://github.com/combeng6th/DirtyInit)
+* SELinux permissive modules and related code: [polygraphene](https://github.com/polygraphene/DFReroot)
+* `lspromise` and various code: [lsposed](https://github.com/lsposed/lspromise)
+* Inter typeface (SIL Open Font License 1.1): [rsms/inter](https://github.com/rsms/inter)
+* `include.inc` contains code Copyright © 2018 Odzhan, BSD-3-Clause
+
+---
+
+<div align="center">
+  Developed by <b>@ShivamXD6</b> and the <b>Build Bytes</b> Team.<br>
+  <a href="https://telegram.me/buildbytes">Join Telegram Community</a> • <a href="https://www.youtube.com/@BuildBytesX">Subscribe on YouTube</a>
+</div>

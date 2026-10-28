@@ -18,9 +18,9 @@ import com.google.android.material.appbar.MaterialToolbar;
 
 public class AboutActivity extends AppCompatActivity {
     private static final String GITHUB_APP = "https://github.com/ShivamXD6/Temporary-Root";
-    private static final String TELEGRAM_CHANNEL = "https://t.me/BuildBytes";
+    private static final String TELEGRAM_CHANNEL = "https://telegram.me/BuildBytes";
     /** Empty hides the row. */
-    private static final String TELEGRAM_GROUP = "";
+    private static final String TELEGRAM_GROUP = "https://telegram.me/BuildBytesDiscussion";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
