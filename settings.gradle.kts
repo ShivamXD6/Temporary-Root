@@ -15,3 +15,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "TemporaryRoot"
 include(":app")
+include(":profile-core")

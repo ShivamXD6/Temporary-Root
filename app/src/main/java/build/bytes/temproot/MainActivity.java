@@ -384,9 +384,27 @@ public class MainActivity extends AppCompatActivity implements IReporter {
             if ((app.flags & ApplicationInfo.FLAG_SYSTEM) == 0
                     && !claimedPackages.contains(app.packageName)
                     && ExploitRunner.hasKsud(app)) {
+                String label = pm.getApplicationLabel(app).toString().trim();
+                // Spoofed builds ship a random package id, so package matching misses
+                // them; adopt them into the known entry so the repo stays downloadable.
+                ManagerEntry known = null;
+                for (ManagerEntry entry : managers) {
+                    if (!entry.isInstalled && entry.title.equalsIgnoreCase(label)) {
+                        known = entry;
+                        break;
+                    }
+                }
+                if (known != null) {
+                    known.isInstalled = true;
+                    known.hasKsud = true;
+                    known.installedPackageName = app.packageName;
+                    known.appIcon = iconFor(pm, app);
+                    claimedPackages.add(app.packageName);
+                    continue;
+                }
                 ManagerEntry customEntry = new ManagerEntry(
-                        pm.getApplicationLabel(app).toString(),
-                        "Installed Custom Manager",
+                        label,
+                        "Installed custom manager",
                         null,
                         null,
                         app.packageName,
@@ -511,6 +529,10 @@ public class MainActivity extends AppCompatActivity implements IReporter {
                 deviceOk = result.ok;
                 updateButtons();
                 statusView.setText(result.title);
+                // Expanding the console makes the log's follow-scroll drag this
+                // ScrollView down, which would hide the verdict card.
+                View scroll = findViewById(R.id.mainScroll);
+                scroll.post(() -> scroll.scrollTo(0, 0));
             });
         });
     }

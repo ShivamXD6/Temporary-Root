@@ -27,8 +27,6 @@ import java.util.Set;
 public final class GhostLockStrategy implements VulnerabilityStrategy {
     private static final String API_URL =
             "https://api.github.com/repos/YuKongA/ghostlock-app/contents/app/src/main/assets/kernel_profiles?ref=main";
-    private static final String RAW_BASE =
-            "https://raw.githubusercontent.com/YuKongA/ghostlock-app/main/app/src/main/assets/kernel_profiles/";
     private static final String CACHE = "ghostlock-profiles.txt";
     private static final long CACHE_TTL_MS = 24L * 60 * 60 * 1000;
 
@@ -60,15 +58,39 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
                     "GhostLock only runs on kernels with an exact uname -r profile and none exists for this one ("
                             + profiles.size() + " profiles published).", false);
         }
-        return new CompatibilityResult("Kernel profile available",
-                "Profile " + profile + " exists (" + RAW_BASE + profile + "). This build has no GhostLock "
-                        + "core bundled, so Start stays disabled.", false);
+        return new CompatibilityResult("Supported — profile available",
+                "Upstream ships " + profile + ". Start downloads and compiles it, then runs the GhostLock core.",
+                true);
     }
 
     @Override
     public int launch(Context context, IReporter reporter) {
-        reporter.report("GhostLock core is not bundled in this build.\n");
-        return 2;
+        String release = System.getProperty("os.version", "").trim();
+        if (release.isEmpty()) {
+            reporter.report("ghostlock: cannot read kernel release\n");
+            return 2;
+        }
+        try {
+            File profile = GhostLockProfile.compile(context, release, reporter);
+            File bin = new File(context.getApplicationInfo().nativeLibraryDir, "libghostlock.so");
+            if (!bin.isFile()) {
+                reporter.report("ghostlock: libghostlock.so missing from this build\n");
+                return 2;
+            }
+            ProcessBuilder pb = new ProcessBuilder(
+                    bin.getAbsolutePath(), "--load-prebuilt-profile", profile.getAbsolutePath());
+            pb.redirectErrorStream(true);
+            pb.environment().put("GHOSTLOCK_HOME", profile.getParentFile().getAbsolutePath());
+            pb.environment().put("TMPDIR", context.getCacheDir().getAbsolutePath());
+            Process process = pb.start();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                for (String line; (line = reader.readLine()) != null; ) reporter.report(line + "\n");
+            }
+            return process.waitFor();
+        } catch (Exception e) {
+            reporter.report("ghostlock: " + e.getMessage() + "\n");
+            return 2;
+        }
     }
 
     /** Profile filenames from the upstream assets dir, cached for a day; null when unavailable. */

@@ -55,3 +55,49 @@ set_target_properties(bootstrap PROPERTIES
     SUFFIX ".so"
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
 target_link_options(bootstrap PRIVATE -Wl,-z,max-page-size=16384 -Wl,--gc-sections -Wl,--strip-all)
+
+# --- CVE-2026-43499 (GhostLock) -------------------------------------------------
+# Vendored upstream core (app/src/main/jni/ghostlock, Apache-2.0). It is a
+# standalone PIE executable like libtemproot.so, but C++23 with a static libc++.
+set(GHOSTLOCK_DIR "${JNI_DIR}/ghostlock")
+set(GHOSTLOCK_SOURCES
+    ${GHOSTLOCK_DIR}/core/main.cpp
+    ${GHOSTLOCK_DIR}/core/attack/ops.cpp
+    ${GHOSTLOCK_DIR}/core/memory/address_space.cpp
+    ${GHOSTLOCK_DIR}/core/memory/heap_context.cpp
+    ${GHOSTLOCK_DIR}/core/memory/payload_builder.cpp
+    ${GHOSTLOCK_DIR}/core/profile/binary.cpp
+    ${GHOSTLOCK_DIR}/core/profile/entry.cpp
+    ${GHOSTLOCK_DIR}/core/race/pi_race.cpp
+    ${GHOSTLOCK_DIR}/core/race/threads.cpp
+    ${GHOSTLOCK_DIR}/core/route/multicast_waiter_route.cpp
+    ${GHOSTLOCK_DIR}/core/route/route_controller.cpp
+    ${GHOSTLOCK_DIR}/core/route/route_middleware.cpp
+    ${GHOSTLOCK_DIR}/core/route/select_stack_route.cpp
+    ${GHOSTLOCK_DIR}/core/route/tcp_zerocopy_route.cpp
+    ${GHOSTLOCK_DIR}/core/session/backend/cve_2026_43499_backend.cpp
+    ${GHOSTLOCK_DIR}/core/session/exploit_session.cpp
+    ${GHOSTLOCK_DIR}/core/session/handoff_probe.cpp
+    ${GHOSTLOCK_DIR}/core/session/root_child_frontend.cpp
+    ${GHOSTLOCK_DIR}/core/session/runtime_config.cpp
+    ${GHOSTLOCK_DIR}/core/session/victim_context.cpp
+    ${GHOSTLOCK_DIR}/core/session/victim_process.cpp
+    ${GHOSTLOCK_DIR}/core/support/native_resource.cpp
+    ${GHOSTLOCK_DIR}/core/support/run_state.cpp
+    ${GHOSTLOCK_DIR}/core/support/util.cpp
+)
+
+add_executable(ghostlock ${GHOSTLOCK_SOURCES})
+set_target_properties(ghostlock PROPERTIES
+    PREFIX "lib"
+    SUFFIX ".so"
+    CXX_STANDARD 23
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
+target_include_directories(ghostlock PRIVATE ${GHOSTLOCK_DIR}/core)
+target_compile_definitions(ghostlock PRIVATE TARGET_CONFIG_H="kernel/target.h")
+target_compile_options(ghostlock PRIVATE -O2 -fno-rtti -Wall -Wextra
+    -Wno-unused-parameter -Wno-sign-compare -Wno-unused-function)
+target_link_options(ghostlock PRIVATE -fPIE -pie -static-libstdc++ -pthread
+    -Wl,--gc-sections -Wl,--strip-all -Wl,-z,max-page-size=16384)

@@ -9,7 +9,7 @@ Temporary Root is an Android research project for establishing a temporary privi
 | Vulnerability | Path | Status |
 |---|---|---|
 | CVE-2026-43284 (DirtyFrag) | Kernel page-cache ESP write, then a per-KMI module | Bundled, runs on GKI |
-| CVE-2026-43499 (GhostLock) | Futex PI use-after-free driven by a per-`uname -r` kernel profile | Detection only in this build |
+| CVE-2026-43499 (GhostLock) | Futex PI use-after-free driven by a per-`uname -r` kernel profile | Bundled, runs on profiled kernels |
 
 > [!IMPORTANT]
 > Before hitting that fork button, consider making a pull request instead :)
@@ -17,7 +17,7 @@ Temporary Root is an Android research project for establishing a temporary privi
 ## Requirements
 
 - **DirtyFrag**: GKI kernel only — Android 12+ on a 5.10, 5.15, 6.1, 6.6, 6.12 or 6.18 kernel branch. Non-GKI 4.x kernels (4.9 / 4.14 / 4.19) are not supported: they have no Kernel Module Interface, so no shipped module can load on them. A kernel with `CONFIG_MODULE_SIG_FORCE=y` cannot load the unsigned module either.
-- **GhostLock**: an exact `uname -r` match in the profile list. Profiles are fetched from the [upstream project](https://github.com/YuKongA/ghostlock-app) at check time and cached; the exploit core itself is not bundled in this build, so the app reports support but cannot run this path yet.
+- **GhostLock**: an exact `uname -r` match in the upstream profile list. The profile and its shared files are downloaded and compiled on the device; no profile ships in the APK.
 - A KernelSU-compatible manager that ships `libksud.so`.
 
 Run **Check device compatibility** — it decides by a live probe (DirtyFrag) or the profile list (GhostLock), not by the kernel version alone.
@@ -99,6 +99,13 @@ The exploit uses this primitive to patch shellcode into `libc++.so` in the kerne
 6. **bootstrap.c** — performs various functions and finally launches the su daemon from your installed SU Manager.
 
 ## Building
+
+The native side compiles two binaries with the NDK: `libtemproot.so` (DirtyFrag,
+C) and `libghostlock.so` (GhostLock, vendored C++23 core in
+`app/src/main/jni/ghostlock`, Apache-2.0). The GhostLock profile compiler is a
+Kotlin JVM module (`:profile-core`) that turns HOCON profiles into the GLK1
+documents the core reads; `./gradlew :profile-core:test` checks that path
+without a device.
 
 Keystore credentials are never stored in the repository:
 
