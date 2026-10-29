@@ -24,9 +24,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.RadioButton;
 import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -652,17 +655,68 @@ public class MainActivity extends AppCompatActivity implements IReporter {
 
     private void showVariantPicker(List<Variant> variants) {
         int recommended = recommendedIndex(variants);
-        String[] labels = new String[variants.size()];
-        for (int i = 0; i < variants.size(); i++) {
-            Variant v = variants.get(i);
-            labels[i] = v.name + "\n" + formatSize(v.size)
-                    + (i == recommended ? "  •  Recommended" : "");
-        }
+        // Put the recommended build first so the default choice is also the top one.
+        List<Variant> ordered = new ArrayList<>(variants);
+        ordered.add(0, ordered.remove(recommended));
+
+        String abi = Build.SUPPORTED_ABIS.length > 0 ? Build.SUPPORTED_ABIS[0] : "arm64-v8a";
+        final int[] choice = {0};
+        VariantAdapter adapter = new VariantAdapter(ordered, abi, choice);
+
+        ListView list = new ListView(this);
+        list.setDivider(null);
+        list.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
+        list.setAdapter(adapter);
+        list.setItemChecked(0, true);
+        list.setOnItemClickListener((parent, view, position, id) -> {
+            choice[0] = position;
+            adapter.notifyDataSetChanged();
+        });
+
         new MaterialAlertDialogBuilder(this)
                 .setTitle("Choose " + selectedEntry.title + " build")
-                .setItems(labels, (dialog, which) -> startDownload(variants.get(which)))
+                .setView(list)
+                .setPositiveButton("Download", (dialog, which) -> startDownload(ordered.get(choice[0])))
                 .setNegativeButton("Cancel", null)
                 .show();
+    }
+
+    private final class VariantAdapter extends BaseAdapter {
+        private final List<Variant> items;
+        private final String abi;
+        private final int[] choice;
+
+        VariantAdapter(List<Variant> items, String abi, int[] choice) {
+            this.items = items;
+            this.abi = abi;
+            this.choice = choice;
+        }
+
+        @Override public int getCount() { return items.size(); }
+        @Override public Object getItem(int position) { return items.get(position); }
+        @Override public long getItemId(int position) { return position; }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            View row = convertView != null ? convertView
+                    : getLayoutInflater().inflate(R.layout.item_variant, parent, false);
+            Variant v = items.get(position);
+            ((TextView) row.findViewById(R.id.variantName)).setText(
+                    describeVariant(v, abi) + (position == 0 ? "  •  Recommended" : ""));
+            ((TextView) row.findViewById(R.id.variantMeta)).setText(
+                    formatSize(v.size) + "  •  " + v.name);
+            ((RadioButton) row.findViewById(R.id.variantRadio)).setChecked(choice[0] == position);
+            return row;
+        }
+    }
+
+    /** Plain-English difference between otherwise similar filenames. */
+    private static String describeVariant(Variant v, String abi) {
+        String name = v.name.toLowerCase();
+        if (name.contains("spoof")) return "Spoofed build";
+        if (matchesAbi(v.name, abi)) return abi + " build";
+        if (name.contains("universal")) return "Universal build";
+        return "Standard build";
     }
 
     /**
