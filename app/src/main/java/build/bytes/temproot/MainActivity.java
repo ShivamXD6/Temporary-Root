@@ -37,6 +37,8 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 import androidx.core.graphics.Insets;
@@ -44,15 +46,20 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.tabs.TabLayout;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -63,6 +70,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity implements IReporter {
     private static final String TAG = "temporaryroot";
@@ -74,6 +83,16 @@ public class MainActivity extends AppCompatActivity implements IReporter {
     private Spinner spinnerSuManager, spinnerVulnerability;
     private View logContentContainer;
     private ImageView btnToggleLog;
+    private TextView txtKernelRelease, txtProfileStatus, txtBootInfo;
+    private View bootInfoScroll;
+    private final ActivityResultLauncher<String[]> pickProfile =
+            registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
+                if (uri != null) importGhostLockProfile(uri);
+            });
+    private final ActivityResultLauncher<String[]> pickBootImage =
+            registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
+                if (uri != null) analyzeBootImage(uri);
+            });
     private boolean isLogExpanded = false;
     private boolean isExploitActive = false;
     private Context mDeCtx;
@@ -89,6 +108,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
     private volatile boolean externalRoot = false;
     private volatile long externalRootCheckedAt = 0;
     private Boolean deviceOk;
+    private android.view.GestureDetector tabGesture;
 
     private int dpToPx(int dp) {
         return Math.round(dp * getResources().getDisplayMetrics().density);
@@ -160,7 +180,6 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         spinnerSuManager = findViewById(R.id.spinnerSuManager);
         spinnerVulnerability = findViewById(R.id.spinnerVulnerability);
         logContentContainer = findViewById(R.id.logContentContainer);
-        btnToggleLog = findViewById(R.id.btnToggleLog);
         View logHeader = findViewById(R.id.logHeader);
 
         if (outputScroll != null) {
@@ -175,9 +194,8 @@ public class MainActivity extends AppCompatActivity implements IReporter {
             });
         }
 
-        View.OnClickListener toggleLogListener = v -> setLogExpanded(!isLogExpanded);
-        if (logHeader != null) logHeader.setOnClickListener(toggleLogListener);
-        if (btnToggleLog != null) btnToggleLog.setOnClickListener(toggleLogListener);
+        setUpTabs();
+        setUpTools();
 
         String[] attackNames = new String[strategies.size()];
         for (int i = 0; i < strategies.size(); i++) attackNames[i] = strategies.get(i).name();
@@ -271,6 +289,147 @@ public class MainActivity extends AppCompatActivity implements IReporter {
     private void updateStrategyTips() {
         View tips = findViewById(R.id.ghostlockTips);
         if (tips != null) tips.setVisibility(strategy instanceof GhostLockStrategy ? View.VISIBLE : View.GONE);
+    }
+
+    private void setUpTabs() {
+        TabLayout tabs = findViewById(R.id.tabLayout);
+        tabs.addTab(tabs.newTab().setText("Home"));
+        tabs.addTab(tabs.newTab().setText("Tools"));
+        tabs.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+            @Override public void onTabSelected(TabLayout.Tab tab) {
+                syncTabs();
+            }
+            @Override public void onTabUnselected(TabLayout.Tab tab) {
+            }
+            @Override public void onTabReselected(TabLayout.Tab tab) {
+            }
+        });
+        syncTabs();
+        tabGesture = new android.view.GestureDetector(this,
+                new android.view.GestureDetector.SimpleOnGestureListener() {
+                    @Override public boolean onFling(MotionEvent from, MotionEvent to, float vx, float vy) {
+                        if (from == null || to == null) return false;
+                        float dx = to.getX() - from.getX();
+                        float dy = to.getY() - from.getY();
+                        if (Math.abs(dx) < 120 || Math.abs(dx) < Math.abs(dy) * 1.5f) return false;
+                        int position = tabs.getSelectedTabPosition() + (dx < 0 ? 1 : -1);
+                        if (position < 0 || position >= tabs.getTabCount()) return false;
+                        TabLayout.Tab next = tabs.getTabAt(position);
+                        if (next != null) next.select();
+                        return true;
+                    }
+                });
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent event) {
+        if (tabGesture != null) tabGesture.onTouchEvent(event);
+        return super.dispatchTouchEvent(event);
+    }
+
+    @Override
+    protected void onPostCreate(Bundle state) {
+        super.onPostCreate(state);
+        // Runs after view state restore, which can leave the tab strip and the
+        // panels disagreeing about which page is visible.
+        syncTabs();
+    }
+
+    private void syncTabs() {
+        TabLayout tabs = findViewById(R.id.tabLayout);
+        if (tabs == null) return;
+        boolean tools = tabs.getSelectedTabPosition() == 1;
+        findViewById(R.id.mainScroll).setVisibility(tools ? View.GONE : View.VISIBLE);
+        findViewById(R.id.toolsPanel).setVisibility(tools ? View.VISIBLE : View.GONE);
+    }
+
+    private void setUpTools() {
+        txtKernelRelease = findViewById(R.id.txtKernelRelease);
+        txtProfileStatus = findViewById(R.id.txtProfileStatus);
+        txtBootInfo = findViewById(R.id.txtBootInfo);
+        bootInfoScroll = findViewById(R.id.bootInfoScroll);
+        txtKernelRelease.setText(System.getProperty("os.version", "unknown"));
+        updateProfileStatus();
+        findViewById(R.id.btnImportProfile).setOnClickListener(v -> pickProfile.launch(new String[]{"*/*"}));
+        findViewById(R.id.btnAnalyzeBoot).setOnClickListener(v -> pickBootImage.launch(new String[]{"*/*"}));
+    }
+
+    private void updateProfileStatus() {
+        String release = System.getProperty("os.version", "").trim();
+        File dir = new File(getFilesDir(), "ghostlock");
+        boolean conf = new File(dir, release + ".conf").isFile();
+        boolean compiled = new File(dir, release + ".glk1").isFile();
+        if (compiled) {
+            txtProfileStatus.setText("Profile ready for this kernel.");
+        } else if (conf) {
+            txtProfileStatus.setText("Profile imported. It is compiled when GhostLock starts.");
+        } else if (release.isEmpty()) {
+            txtProfileStatus.setText("Cannot read the kernel release.");
+        } else {
+            txtProfileStatus.setText("No local profile. GhostLock only runs with one; import a .conf generated for this exact kernel.");
+        }
+    }
+
+    /**
+     * Takes a HOCON profile (same format the upstream extractor emits) and
+     * compiles it with the bundled compiler. The release inside the file must
+     * match this device, because every offset is kernel-build specific.
+     */
+    private void importGhostLockProfile(Uri uri) {
+        txtProfileStatus.setText("Importing…");
+        mExec.execute(() -> {
+            String message;
+            try {
+                String text = readText(uri);
+                Matcher matcher = Pattern.compile("(?m)^\\s*release\\s*=\\s*\"([^\"]+)\"").matcher(text);
+                if (!matcher.find()) throw new IOException("no release field — not a GhostLock profile");
+                String release = matcher.group(1).trim();
+                String device = System.getProperty("os.version", "").trim();
+                if (!release.equals(device)) {
+                    throw new IOException("profile is for " + release + ", this device runs " + device);
+                }
+                File dir = new File(getFilesDir(), "ghostlock");
+                if (!dir.isDirectory() && !dir.mkdirs()) throw new IOException("cannot create " + dir);
+                Files.write(new File(dir, release + ".conf").toPath(), text.getBytes(StandardCharsets.UTF_8));
+                GhostLockProfile.compile(MainActivity.this, release, MainActivity.this);
+                message = "Profile imported and compiled for " + release;
+            } catch (Exception e) {
+                message = "Import failed: " + e.getMessage();
+            }
+            final String result = message;
+            mMain.post(() -> {
+                updateProfileStatus();
+                txtProfileStatus.setText(result);
+                deviceOk = null;
+                updateButtons();
+                Toast.makeText(MainActivity.this, result, Toast.LENGTH_LONG).show();
+            });
+        });
+    }
+
+    private void analyzeBootImage(Uri uri) {
+        bootInfoScroll.setVisibility(View.VISIBLE);
+        txtBootInfo.setText("Reading…");
+        mExec.execute(() -> {
+            String text;
+            try {
+                text = BootImage.describe(getContentResolver(), uri, System.getProperty("os.version", "").trim());
+            } catch (Exception e) {
+                text = "Cannot read image: " + e.getMessage();
+            }
+            final String result = text;
+            mMain.post(() -> txtBootInfo.setText(result));
+        });
+    }
+
+    private String readText(Uri uri) throws IOException {
+        try (InputStream in = getContentResolver().openInputStream(uri)) {
+            if (in == null) throw new IOException("cannot open file");
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[8192];
+            for (int read; (read = in.read(buffer)) > 0; ) out.write(buffer, 0, read);
+            return new String(out.toByteArray(), StandardCharsets.UTF_8);
+        }
     }
 
     private void setLogExpanded(boolean expanded) {

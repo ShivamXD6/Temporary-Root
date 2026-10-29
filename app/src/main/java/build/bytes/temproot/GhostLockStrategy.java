@@ -59,7 +59,8 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
                     "Could not read the profile list. Connect to the internet and try again.", false);
         }
         String profile = release + ".conf";
-        if (!profiles.contains(profile)) {
+        boolean imported = new File(context.getFilesDir(), "ghostlock/" + profile).isFile();
+        if (!imported && !profiles.contains(profile)) {
             Odds odds = odds(context, false);
             return new CompatibilityResult("Unsupported kernel " + release,
                     "GhostLock only runs on kernels with an exact uname -r profile and none exists for this one ("
@@ -67,7 +68,8 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
         }
         Odds odds = odds(context, true);
         return new CompatibilityResult("Supported \u2014 profile available \u00b7 ~" + odds.score + "%",
-                "Upstream ships " + profile + ". Start downloads and compiles it, then runs the GhostLock core."
+                (imported ? "Using the imported profile for " + profile + "."
+                        : "Upstream ships " + profile + ". Start downloads and compiles it, then runs the GhostLock core.")
                         + odds.detail,
                 true);
     }
@@ -84,49 +86,49 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
     }
 
     /**
-     * Heuristic from measurable device state, not a measurement: the primitive
-     * itself is ~97% stable on a matched profile, so the score mostly reflects
-     * environment (memory, heat, load) and the module handoff.
+     * Heuristic from measurable device state, not a measurement. Starts at 50%
+     * because the primitive is only stable when everything else lines up; the
+     * notes below say what would raise or lower it.
      */
     private static Odds odds(Context context, boolean supported) {
-        int score = supported ? 90 : 0;
+        int score = supported ? 50 : 0;
         StringBuilder notes = new StringBuilder();
 
         ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
         ActivityManager.MemoryInfo mem = new ActivityManager.MemoryInfo();
         am.getMemoryInfo(mem);
         long freeMb = mem.availMem >> 20;
-        int d = freeMb >= 2500 ? 2 : freeMb >= 1500 ? 0 : freeMb >= 800 ? -5 : -15;
+        int d = freeMb >= 2500 ? 10 : freeMb >= 1500 ? 0 : freeMb >= 800 ? -8 : -18;
         score += d;
         notes.append(note(d, freeMb + " MB free RAM"));
 
         PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
         int thermal = pm.getCurrentThermalStatus();
-        d = thermal <= PowerManager.THERMAL_STATUS_LIGHT ? 0
-                : thermal == PowerManager.THERMAL_STATUS_MODERATE ? -6 : -18;
+        d = thermal <= PowerManager.THERMAL_STATUS_LIGHT ? 8
+                : thermal == PowerManager.THERMAL_STATUS_MODERATE ? -8 : -20;
         score += d;
         notes.append(note(d, "thermal " + thermalName(thermal)));
 
         long upMin = SystemClock.elapsedRealtime() / 60000;
-        d = upMin < 30 ? 2 : upMin < 360 ? 0 : upMin < 1440 ? -4 : -8;
+        d = upMin < 30 ? 10 : upMin < 360 ? 0 : upMin < 1440 ? -6 : -10;
         score += d;
         notes.append(note(d, "up " + (upMin < 60 ? upMin + " min" : upMin / 60 + " h") + " since boot"));
 
         BatteryManager bm = (BatteryManager) context.getSystemService(Context.BATTERY_SERVICE);
         int pct = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
         if (pct < 0 || pct > 100) pct = 50;
-        d = pct >= 50 ? 0 : pct >= 20 ? -3 : -12;
+        d = pct >= 50 ? 4 : pct >= 20 ? -2 : -12;
         score += d;
         notes.append(note(d, "battery " + pct + "%"));
 
         if (pm.isPowerSaveMode()) {
-            score -= 8;
-            notes.append(note(-8, "battery saver is on — turn it off"));
+            score -= 10;
+            notes.append(note(-10, "battery saver is on — turn it off"));
         }
 
         if (managerKsud(context) == null) {
-            score -= 20;
-            notes.append(note(-20, "no ksud in the selected manager (root only, no KernelSU)"));
+            score -= 25;
+            notes.append(note(-25, "no ksud in the selected manager (root only, no KernelSU)"));
         }
 
         String log = RunLog.read(context);
@@ -135,7 +137,7 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
             notes.append(note(-15, "last run never finished — reboot before retrying"));
         }
 
-        score = Math.max(0, Math.min(97, score));
+        score = Math.max(5, Math.min(90, score));
         String detail = (supported
                 ? "\n\nEstimated success ~" + score + "%  (from current device state)"
                 : "\n\nEstimated success 0%  — this kernel has no GhostLock profile")
