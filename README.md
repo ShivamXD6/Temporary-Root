@@ -148,8 +148,9 @@ with the mitigation backported, the probe reports **patched** and Start stays di
 * **Launch manager after success** — open the selected manager once root is up.
 * **Start at boot** — run the exploit on boot; the receiver is a normal app component, disable it
   any time.
-* **Auto soft reboot** — on by default. Restarts Android services (not a full reboot) so the
-  freshly loaded module binds; needed with KernelSU late-load. Applies to both exploits.
+* **Auto soft reboot** — off by default. Restarts Android services (not a full reboot) so the
+  freshly loaded module binds; needed with KernelSU late-load. Applies to both exploits. While it
+  is on, the manager launch below is skipped (the reboot replaces it).
 * **Disable KSU modules** — writes a `disable` file into every `/data/adb/modules/<id>`, so
   modules stay off until you re-enable them in the manager. It is a blunt recovery switch, not a
   bootloop detector: it runs at root time. Applies to both exploits.

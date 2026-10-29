@@ -40,7 +40,7 @@ static int pref_false(const char *buf, const char *key)
  * to fall back to the same default the switch shows. */
 static void read_toggles(int *soft_reboot, int *disable_modules)
 {
-    *soft_reboot = 1;
+    *soft_reboot = 0;
     *disable_modules = 0;
 
     int fd = open(PREFS_PATH, O_RDONLY);
@@ -51,7 +51,7 @@ static void read_toggles(int *soft_reboot, int *disable_modules)
     if (n <= 0) return;
     buf[n] = '\0';
 
-    *soft_reboot = !pref_false(buf, "soft_reboot");
+    *soft_reboot = pref_true(buf, "soft_reboot");
     *disable_modules = pref_true(buf, "disable_modules");
 }
 
@@ -77,7 +77,7 @@ static int read_prefs(char *su_manager, size_t su_manager_size, int *soft_reboot
     memcpy(su_manager, p, len);
     su_manager[len] = '\0';
 
-    *soft_reboot = !pref_false(buf, "soft_reboot");
+    *soft_reboot = pref_true(buf, "soft_reboot");
     *disable_modules = pref_true(buf, "disable_modules");
 
     return 0;

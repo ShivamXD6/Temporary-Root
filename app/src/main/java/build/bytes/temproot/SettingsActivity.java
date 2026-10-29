@@ -85,7 +85,7 @@ public class SettingsActivity extends AppCompatActivity {
         // 3. Auto Soft Reboot
         View cardSoftReboot = findViewById(R.id.cardSoftReboot);
         MaterialSwitch switchSoftReboot = findViewById(R.id.switchSoftReboot);
-        switchSoftReboot.setChecked(dePrefs.getBoolean(ExploitRunner.PREF_SOFT_REBOOT, true));
+        switchSoftReboot.setChecked(dePrefs.getBoolean(ExploitRunner.PREF_SOFT_REBOOT, false));
         switchSoftReboot.setOnCheckedChangeListener((buttonView, isChecked) -> {
             dePrefs.edit().putBoolean(ExploitRunner.PREF_SOFT_REBOOT, isChecked).apply();
             syncManagerRow(isChecked);
