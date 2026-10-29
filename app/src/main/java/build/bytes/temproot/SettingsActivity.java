@@ -5,9 +5,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
+import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -16,7 +22,24 @@ import androidx.core.view.WindowInsetsCompat;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.materialswitch.MaterialSwitch;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public class SettingsActivity extends AppCompatActivity {
+
+    private final ExecutorService io = Executors.newSingleThreadExecutor();
+    private final Handler main = new Handler(Looper.getMainLooper());
+    private final ActivityResultLauncher<String[]> pickProfile =
+            registerForActivityResult(new ActivityResultContracts.OpenDocument(),
+                    uri -> { if (uri != null) importProfile(uri); });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,8 +98,51 @@ public class SettingsActivity extends AppCompatActivity {
                 dePrefs.edit().putBoolean("disable_modules", isChecked).apply());
         cardDisableModules.setOnClickListener(v -> switchDisableModules.toggle());
 
-        // 5. About
+        // 5. Import a GhostLock profile (.conf) for this exact kernel
+        findViewById(R.id.cardImportProfile).setOnClickListener(v -> pickProfile.launch(new String[]{"*/*"}));
+
+        // 6. About
         View cardAbout = findViewById(R.id.cardAbout);
         cardAbout.setOnClickListener(v -> startActivity(new Intent(ctx, AboutActivity.class)));
+    }
+
+    /**
+     * The release in the file must match this kernel: every offset is build
+     * specific. Compiling here proves the file is usable before a run.
+     */
+    private void importProfile(Uri uri) {
+        Toast.makeText(this, "Importing\u2026", Toast.LENGTH_SHORT).show();
+        io.execute(() -> {
+            String message;
+            try {
+                String text = readText(uri);
+                Matcher matcher = Pattern.compile("(?m)^\\s*release\\s*=\\s*\"([^\"]+)\"").matcher(text);
+                if (!matcher.find()) throw new IOException("no release field, not a GhostLock profile");
+                String release = matcher.group(1).trim();
+                String device = System.getProperty("os.version", "").trim();
+                if (!release.equals(device)) {
+                    throw new IOException("profile is for " + release + ", this device runs " + device);
+                }
+                File dir = new File(getFilesDir(), "ghostlock");
+                if (!dir.isDirectory() && !dir.mkdirs()) throw new IOException("cannot create " + dir);
+                Files.write(new File(dir, release + ".conf").toPath(), text.getBytes(StandardCharsets.UTF_8));
+                GhostLockProfile.compile(this, release, msg -> { });
+                message = "Profile imported and compiled for " + release;
+            } catch (Exception e) {
+                message = "Import failed: " + e.getMessage();
+            }
+            String result = message;
+            main.post(() -> Toast.makeText(this, result, Toast.LENGTH_LONG).show());
+        });
+    }
+
+    private String readText(Uri uri) throws IOException {
+        try (InputStream in = getContentResolver().openInputStream(uri)) {
+            if (in == null) throw new IOException("cannot read the selected file");
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            byte[] buffer = new byte[8192];
+            for (int n; (n = in.read(buffer)) > 0; ) out.write(buffer, 0, n);
+            return out.toString("UTF-8");
+        }
     }
 }

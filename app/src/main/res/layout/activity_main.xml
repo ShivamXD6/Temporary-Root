@@ -51,15 +51,11 @@
             app:tint="@color/primary" />
     </LinearLayout>
 
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
-
     <ScrollView
         android:id="@+id/mainScroll"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:fillViewport="true"
         android:scrollbars="none">
 
@@ -269,133 +265,81 @@
                 app:cornerRadius="24dp"
                 app:strokeColor="@color/outline" />
 
-        </LinearLayout>
-    </ScrollView>
-
-    <LinearLayout
-        android:id="@+id/toolsPanel"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:visibility="gone">
-
-        <ScrollView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:fillViewport="false"
-            android:scrollbars="none">
-
-            <LinearLayout
+            <!-- Console -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardLog"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:layout_marginBottom="4dp"
+                app:cardBackgroundColor="@color/surface_container"
+                app:cardCornerRadius="24dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp">
 
-                <!-- GhostLock profile -->
-                <com.google.android.material.card.MaterialCardView
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="12dp"
-                    app:cardBackgroundColor="@color/surface_container"
-                    app:cardCornerRadius="24dp"
-                    app:cardElevation="0dp"
-                    app:strokeWidth="0dp">
+                    android:orientation="vertical"
+                    android:padding="8dp">
 
                     <LinearLayout
+                        android:id="@+id/logHeader"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="18dp">
+                        android:background="@drawable/bg_row_ripple"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="10dp"
+                        android:paddingTop="10dp"
+                        android:paddingEnd="10dp"
+                        android:paddingBottom="10dp">
 
                         <TextView
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:text="GhostLock profile"
+                            android:layout_weight="1"
+                            android:text="Console log"
                             android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
-                            android:textColor="@color/primary" />
-
-                        <TextView
-                            android:id="@+id/txtKernelRelease"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
-                            android:fontFamily="monospace"
-                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                            android:textColor="@color/on_surface" />
-
-                        <TextView
-                            android:id="@+id/txtProfileStatus"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                             android:textColor="@color/on_surface_variant" />
 
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnImportProfile"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
-                            android:layout_width="match_parent"
-                            android:layout_height="44dp"
-                            android:layout_marginTop="12dp"
-                            android:text="Import profile (.conf)"
-                            android:textAllCaps="false"
-                            app:cornerRadius="22dp"
-                            app:strokeColor="@color/outline" />
+                        <ImageButton
+                            android:id="@+id/btnShowLogs"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:layout_marginEnd="6dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="Saved logs"
+                            android:src="@drawable/ic_logs"
+                            app:tint="@color/on_surface_variant" />
+
+                        <ImageView
+                            android:id="@+id/btnToggleLog"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:contentDescription="Toggle log view"
+                            android:src="@drawable/ic_expand_more"
+                            app:tint="@color/on_surface_variant" />
                     </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- Boot image analyzer -->
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="12dp"
-                    app:cardBackgroundColor="@color/surface_container"
-                    app:cardCornerRadius="24dp"
-                    app:cardElevation="0dp"
-                    app:strokeWidth="0dp">
 
                     <LinearLayout
+                        android:id="@+id/logContentContainer"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="18dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Boot image analyzer"
-                            android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
-                            android:textColor="@color/primary" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:text="Reads boot.img / vendor_boot.img: format, sizes, cmdline and the kernel version it carries."
-                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                            android:textColor="@color/on_surface_variant" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnAnalyzeBoot"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
-                            android:layout_width="match_parent"
-                            android:layout_height="44dp"
-                            android:layout_marginTop="12dp"
-                            android:text="Analyze image"
-                            android:textAllCaps="false"
-                            app:cornerRadius="22dp"
-                            app:strokeColor="@color/outline" />
+                        android:padding="2dp"
+                        android:visibility="gone">
 
                         <ScrollView
-                            android:id="@+id/bootInfoScroll"
+                            android:id="@+id/outputScroll"
                             android:layout_width="match_parent"
-                            android:layout_height="120dp"
-                            android:layout_marginTop="10dp"
+                            android:layout_height="200dp"
                             android:background="@drawable/bg_console"
-                            android:padding="12dp"
-                            android:visibility="gone">
+                            android:padding="14dp">
 
                             <TextView
-                                android:id="@+id/txtBootInfo"
+                                android:id="@+id/outputView"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:fontFamily="monospace"
@@ -403,121 +347,35 @@
                                 android:textIsSelectable="true"
                                 android:textSize="11sp" />
                         </ScrollView>
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-            </LinearLayout>
-        </ScrollView>
 
-        <!-- Console -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardLog"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            app:cardBackgroundColor="@color/surface_container"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="0dp"
-            app:strokeWidth="0dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical"
-                android:padding="8dp">
-
-                <LinearLayout
-                    android:id="@+id/logHeader"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="10dp"
-                    android:paddingTop="8dp"
-                    android:paddingEnd="10dp"
-                    android:paddingBottom="8dp">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Console log"
-                        android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
-                        android:textColor="@color/on_surface_variant" />
-
-                    <ImageButton
-                        android:id="@+id/btnShowLogs"
-                        android:layout_width="28dp"
-                        android:layout_height="28dp"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:contentDescription="Saved logs"
-                        android:src="@drawable/ic_logs"
-                        app:tint="@color/on_surface_variant" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/logContentContainer"
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:padding="2dp">
-
-                    <ScrollView
-                        android:id="@+id/outputScroll"
-                        android:layout_width="match_parent"
-                        android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:background="@drawable/bg_console"
-                        android:padding="14dp">
-
-                        <TextView
-                            android:id="@+id/outputView"
+                        <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:fontFamily="monospace"
-                            android:textColor="#C3C8D2"
-                            android:textIsSelectable="true"
-                            android:textSize="11sp" />
-                    </ScrollView>
+                            android:layout_marginTop="2dp"
+                            android:orientation="horizontal">
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:orientation="horizontal">
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnCopyLog"
+                                style="@style/Widget.Material3.Button.TextButton"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Copy log"
+                                android:textAllCaps="false" />
 
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnCopyLog"
-                            style="@style/Widget.Material3.Button.TextButton"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Copy log"
-                            android:textAllCaps="false" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnShareLog"
-                            style="@style/Widget.Material3.Button.TextButton"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Share log"
-                            android:textAllCaps="false" />
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnShareLog"
+                                style="@style/Widget.Material3.Button.TextButton"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Share log"
+                                android:textAllCaps="false" />
+                        </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-    </LinearLayout>
-    </FrameLayout>
+            </com.google.android.material.card.MaterialCardView>
 
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bottomNav"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/surface"
-        app:itemActiveIndicatorStyle="@null"
-        app:itemIconTint="@color/primary"
-        app:itemTextColor="@color/on_surface_variant"
-        app:labelVisibilityMode="labeled"
-        app:menu="@menu/bottom_nav" />
+        </LinearLayout>
+    </ScrollView>
 </LinearLayout>

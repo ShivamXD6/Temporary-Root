@@ -46,6 +46,11 @@ public class AboutActivity extends AppCompatActivity {
         addLink(inflater, links, "Telegram channel", "Builds and release notes", TELEGRAM_CHANNEL);
         addLink(inflater, links, "Telegram group", "Support and discussion", TELEGRAM_GROUP);
         addLink(inflater, links, "Source code", "github.com/ShivamXD6/Temporary-Root", GITHUB_APP);
+
+        LinearLayout donate = findViewById(R.id.donateContainer);
+        addLink(inflater, donate, "diabl0w — DFRoot", "The DirtyFrag chain this app is built on", "https://github.com/sponsors/diabl0w");
+        addLink(inflater, donate, "YuKongA — GhostLock", "CVE-2026-43499 profiles and core", "https://github.com/sponsors/YuKongA");
+        addLink(inflater, donate, "tiann — KernelSU", "Manager and module loading", "https://github.com/sponsors/tiann");
     }
 
     private void addLink(LayoutInflater inflater, LinearLayout container,

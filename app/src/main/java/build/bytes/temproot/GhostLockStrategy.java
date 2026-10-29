@@ -53,28 +53,30 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
             return new CompatibilityResult("Check inconclusive",
                     "Could not read the kernel release string.", false);
         }
+        // Online first: an upstream profile is the trusted one. The imported
+        // file is only the fallback for kernels upstream has never built.
         String profile = release + ".conf";
-        if (new File(context.getFilesDir(), "ghostlock/" + profile).isFile()) {
-            Odds importedOdds = odds(context, true);
-            return new CompatibilityResult("Supported \u2014 imported profile \u00b7 ~" + importedOdds.score + "%",
-                    "Using the imported profile for " + profile + "." + importedOdds.detail, true);
-        }
         Set<String> profiles = profiles(context);
+        if (profiles != null && profiles.contains(profile)) {
+            Odds odds = odds(context, true);
+            return new CompatibilityResult("Supported \u2014 profile available \u00b7 ~" + odds.score + "%",
+                    "Upstream ships " + profile + ". Start downloads and compiles it, then runs the GhostLock core."
+                            + odds.detail,
+                    true);
+        }
+        if (new File(context.getFilesDir(), "ghostlock/" + profile).isFile()) {
+            Odds odds = odds(context, true);
+            return new CompatibilityResult("Supported \u2014 imported profile \u00b7 ~" + odds.score + "%",
+                    "No upstream profile for this kernel; using the imported " + profile + "." + odds.detail, true);
+        }
         if (profiles == null) {
             return new CompatibilityResult("Check inconclusive",
                     "Could not read the profile list. Connect to the internet and try again.", false);
         }
-        if (!profiles.contains(profile)) {
-            Odds odds = odds(context, false);
-            return new CompatibilityResult("Unsupported kernel " + release,
-                    "GhostLock only runs on kernels with an exact uname -r profile and none exists for this one ("
-                            + profiles.size() + " profiles published)." + odds.detail, false);
-        }
-        Odds odds = odds(context, true);
-        return new CompatibilityResult("Supported \u2014 profile available \u00b7 ~" + odds.score + "%",
-                "Upstream ships " + profile + ". Start downloads and compiles it, then runs the GhostLock core."
-                        + odds.detail,
-                true);
+        Odds odds = odds(context, false);
+        return new CompatibilityResult("Unsupported kernel " + release,
+                "GhostLock only runs on kernels with an exact uname -r profile and none exists for this one ("
+                        + profiles.size() + " profiles published)." + odds.detail, false);
     }
 
     /** Estimated chance of getting root right now, plus the reasons. */

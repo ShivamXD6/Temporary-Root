@@ -80,6 +80,46 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
+                android:layout_marginBottom="10dp"
+                app:cardBackgroundColor="@color/surface_container"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Support the developers"
+                        android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                        android:textColor="@color/on_surface" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:layout_marginBottom="6dp"
+                        android:text="Donations go to the people whose research this build stands on"
+                        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                        android:textColor="@color/on_surface_variant" />
+
+                    <LinearLayout
+                        android:id="@+id/donateContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
                 app:cardBackgroundColor="@color/surface_container"
                 app:cardCornerRadius="20dp"
                 app:cardElevation="0dp"
@@ -103,7 +143,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
                         android:lineSpacingExtra="2dp"
-                        android:text="DirtyFrag research by v4bel · GhostLock by YuKongA and contributors · KernelSU, KernelSU-Next, BakaSU, SukiSU-Ultra, OriginSU and the diabl0w Samsung fork."
+                        android:text="DirtyFrag research by v4bel, and DFRoot by diabl0w (github.com/diabl0w/DFRoot) — the DirtyFrag chain this app is built on. GhostLock by YuKongA and contributors. KernelSU, KernelSU-Next, BakaSU, SukiSU-Ultra, OriginSU and the diabl0w Samsung fork."
                         android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                         android:textColor="@color/on_surface_variant" />
                 </LinearLayout>
