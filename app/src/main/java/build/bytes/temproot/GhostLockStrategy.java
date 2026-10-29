@@ -66,13 +66,13 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
             return new CompatibilityResult("Supported \u2014 profile available \u00b7 ~" + odds.score + "%",
                     "Upstream ships " + profile + ". Start downloads and compiles it, then runs the GhostLock core."
                             + odds.detail,
-                    true);
+                    true, odds.score);
         }
         if (new File(context.getFilesDir(), "ghostlock/" + profile).isFile()) {
             Odds odds = odds(context, 5);
             return new CompatibilityResult("Supported \u2014 imported profile \u00b7 ~" + odds.score + "%",
                     "No upstream profile for this kernel; using the imported " + profile + ". It was not built by "
-                            + "the project, so the estimate is only a candidate." + odds.detail, true);
+                            + "the project, so the estimate is only a candidate." + odds.detail, true, odds.score);
         }
         if (profiles == null) {
             return new CompatibilityResult("Check inconclusive",

@@ -20,10 +20,35 @@
   KernelSU-compatible module, and hands root to the manager you already use. Reboot and the device
   is back to stock — nothing is written to your boot image.
 
-* *Note: This project started from the DirtyFrag research. DirtyFrag is one of the two paths it
-  ships now, next to GhostLock.*
+* *Note: This project started from the DirtyFrag research, and its DirtyFrag chain is built on
+  [DFRoot by diabl0w](https://github.com/diabl0w/DFRoot). DirtyFrag is one of the two paths it ships
+  now, next to GhostLock.*
+
+> [!WARNING]
+> This is a live kernel exploit. A missed race can panic and reboot the phone, and on a bad day it
+> can leave the device needing a reflash. Keep a backup, know how to recover, and only run it on a
+> device you can afford to lose. Nothing here is written to the boot image, so a reboot always
+> removes it.
+
+### ⚠️ What temporary root cannot do
+
+* **It disappears on reboot.** Root, loaded modules and the manager's state all go away, because
+  nothing is patched on disk.
+* **Zygisk / LSPosed / Shamiko-style modules usually do nothing.** They hook zygote during
+  `post-fs-data`, and the module only loads after zygote is already running. KernelSU's late-load
+  mode replaces `post-fs-data.sh` with a `late-load.sh` stage — modules that only ship the former
+  don't run their boot hook until a reboot, and after that reboot the temporary root is gone.
+* **Modules that need a reboot to take effect** can't help a session that ends with that reboot.
+* **Direct writes to `system` / `vendor` fail.** The app marks the block devices read-only before
+  handing off, so anything that patches partitions rather than overlaying them errors out.
+* **Modules that ship their own kernel module** need a matching `vermagic` and unsigned-module
+  support; `CONFIG_MODULE_SIG_FORCE=y` blocks them outright.
+* **These still work under late-load:** systemless overlays/metamodules, `service.sh`, `post-mount.sh`,
+  `system.prop`, `boot-completed.sh`, and modules that provide a `late-load.sh`.
+* **Samsung** adds DEFEX/Knox restrictions on top of everything above.
 
 ---
+
 
 ## 📑 Table of Contents
 
@@ -227,10 +252,6 @@ debug-signed release build so forks still work:
 3. Tap **Check device compatibility** and read the verdict.
 4. If it says Vulnerable / Supported, tap **Start Temporary Root** and wait for the manager to come up.
 
-> [!WARNING]
-> I am not responsible for any damage to your device. A kernel exploit can crash or destabilise a
-> device; that risk is the whole point of keeping it temporary.
-
 ---
 
 ## 🔬 How It Works
@@ -350,11 +371,12 @@ starts at 5% because the profile was not built by the project.
 </details>
 
 <details>
-<summary><b>Why does the GhostLock percentage change between checks?</b></summary>
+<summary><b>Is the GhostLock percentage real?</b></summary>
 
-Part of it is measured (RAM, thermals, uptime, battery, battery saver, doze, missing `ksud`,
-unfinished run), part of it is ±7% deliberate run-to-run variance, because two identical runs do
-not have identical odds. It is a hint about conditions, not a promise.
+No, it is an **estimate**, and it only exists for GhostLock. Part of it is measured (RAM, thermals,
+uptime, battery, battery saver, doze, missing `ksud`, unfinished run), part of it is ±7% deliberate
+run-to-run variance, because two identical runs do not have identical odds. A high number means the
+conditions are good, not that the race will land — a miss can still panic and reboot the phone.
 
 </details>
 
@@ -366,8 +388,9 @@ Temporary Root is open-source and free. If it saved you a boot image patch, cons
 work:
 
 * [Sponsor via GitHub](https://github.com/sponsors/ShivamXD6)
-* [Donate via PayPal](https://paypal.me/ShivamXD6)
-* UPI: `shivamdhage@upi`
+* [Donate via PayPal](https://www.paypal.com/paypalme/ShivamXD6)
+* **BHIM / international UPI:** `shivamdhage@upi` — [QR code](https://i.ibb.co/ZRm2xN2L/bhimupi.jpg)
+* **GPay / UPI (India):** `shivamashokdhage6@oksbi` — [QR code](https://i.ibb.co/5g4J2RXR/1f38d6d7-a8a2-4696-88e6-9cf503e0592c.png)
 * [Join Build Bytes on Telegram](https://telegram.me/BuildBytes)
 
 ---

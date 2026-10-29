@@ -93,6 +93,8 @@ public class MainActivity extends AppCompatActivity implements IReporter {
     private volatile boolean externalRoot = false;
     private volatile long externalRootCheckedAt = 0;
     private Boolean deviceOk;
+    private int lastScore = -1;
+    private VulnerabilityStrategy lastScoreStrategy;
 
     private int dpToPx(int dp) {
         return Math.round(dp * getResources().getDisplayMetrics().density);
@@ -253,11 +255,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         findViewById(R.id.btnShowLogs).setOnClickListener(v -> showSavedLog());
         btnOpenManager.setOnClickListener(v -> openManager());
         btnDownloadManager.setOnClickListener(v -> downloadManager());
-        btnRun.setOnClickListener(v -> {
-            btnRun.setEnabled(false);
-            outputView.setText("");
-            mExec.execute(this::runExploit);
-        });
+        btnRun.setOnClickListener(v -> startRun());
 
         updateButtons();
 
@@ -547,6 +545,24 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         }
     }
 
+    private void startRun() {
+        if (isExploitActive) return;
+        btnRun.setEnabled(false);
+        outputView.setText("");
+        mExec.execute(this::runExploit);
+    }
+
+    /** At 85%+ the conditions are as good as they get, so offer a one-tap start. */
+    private void offerStart(int score) {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Conditions look good")
+                .setMessage("Estimated " + score + "% success on this device right now.\n\n"
+                        + "A miss can panic and reboot the phone.")
+                .setPositiveButton("Start now", (dialog, which) -> startRun())
+                .setNegativeButton("Not now", null)
+                .show();
+    }
+
     private void checkDevice() {
         outputView.setText("");
         statusView.setText("Checking device…");
@@ -559,8 +575,11 @@ public class MainActivity extends AppCompatActivity implements IReporter {
                 // just yanked the page around while the user read it.
                 report("\n=== device check ===\n" + result.asText() + "\n");
                 deviceOk = result.ok;
+                lastScore = result.score;
+                lastScoreStrategy = selected;
                 updateButtons();
                 statusView.setText(result.title);
+                if (result.ok && result.score >= 85 && !isExploitActive) offerStart(result.score);
             });
         });
     }
@@ -573,6 +592,8 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         wake.acquire(15 * 60 * 1000L);
         mMain.post(() -> getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON));
         RunLog.start(mDeCtx);
+        report("estimate: " + (lastScoreStrategy == strategy && lastScore >= 0
+                ? lastScore + "%" : "not measured") + "\n");
         try {
             int rc = strategy.launch(mDeCtx, this);
             if (rc == 0) {
@@ -589,7 +610,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
                             .getBoolean(ExploitRunner.PREF_SOFT_REBOOT, true)
                     && mDeCtx.getSharedPreferences(ExploitRunner.PREFS_NAME, MODE_PRIVATE)
                             .getBoolean(ExploitRunner.PREF_OPEN_MANAGER, true)) {
-                mMain.postDelayed(this::openManager, 2500);
+                mMain.postDelayed(this::openManager, 5000);
             }
             mMain.post(() -> Toast.makeText(this, msg, Toast.LENGTH_LONG).show());
         } catch (Exception e) {
