@@ -227,6 +227,18 @@
                         android:background="@null"
                         android:dropDownVerticalOffset="4dp"
                         android:popupBackground="@drawable/bg_popup" />
+
+                    <TextView
+                        android:id="@+id/ghostlockTips"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginEnd="6dp"
+                        android:lineSpacingExtra="2dp"
+                        android:text="Best run: fresh reboot, phone cool, 50%+ battery, battery saver off, this app in front, screen untouched. The estimate above measures exactly these."
+                        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                        android:textColor="@color/on_surface_variant"
+                        android:visibility="gone" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

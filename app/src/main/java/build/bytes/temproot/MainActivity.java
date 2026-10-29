@@ -16,12 +16,14 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
@@ -185,11 +187,13 @@ public class MainActivity extends AppCompatActivity implements IReporter {
             @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 strategy = strategies.get(position);
                 deviceOk = null;
+                updateStrategyTips();
                 updateButtons();
             }
             @Override public void onNothingSelected(AdapterView<?> parent) {
             }
         });
+        updateStrategyTips();
 
         View btnVulnerabilityInfo = findViewById(R.id.btnVulnerabilityInfo);
         if (btnVulnerabilityInfo != null) {
@@ -261,6 +265,12 @@ public class MainActivity extends AppCompatActivity implements IReporter {
     protected void onResume() {
         super.onResume();
         loadManagers();
+    }
+
+    /** GhostLock tips only make sense for that strategy. */
+    private void updateStrategyTips() {
+        View tips = findViewById(R.id.ghostlockTips);
+        if (tips != null) tips.setVisibility(strategy instanceof GhostLockStrategy ? View.VISIBLE : View.GONE);
     }
 
     private void setLogExpanded(boolean expanded) {
@@ -536,6 +546,12 @@ public class MainActivity extends AppCompatActivity implements IReporter {
     }
 
     private void runExploit() {
+        // A frozen or throttled app ruins the exploit's timing, so hold the CPU
+        // and the screen for the whole run (the core caps itself at ~5 minutes).
+        PowerManager.WakeLock wake = ((PowerManager) getSystemService(POWER_SERVICE))
+                .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "temproot:exploit");
+        wake.acquire(15 * 60 * 1000L);
+        mMain.post(() -> getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON));
         RunLog.start(mDeCtx);
         try {
             int rc = strategy.launch(mDeCtx, this);
@@ -555,6 +571,8 @@ public class MainActivity extends AppCompatActivity implements IReporter {
             Log.e(TAG, "exploit exception", e);
             report("\nexception: " + e + "\n");
         } finally {
+            mMain.post(() -> getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON));
+            wake.release();
             RunLog.finish(mDeCtx);
             mMain.post(this::updateButtons);
         }

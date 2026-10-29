@@ -119,6 +119,11 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
         score += d;
         notes.append(note(d, "battery " + pct + "%"));
 
+        if (pm.isPowerSaveMode()) {
+            score -= 8;
+            notes.append(note(-8, "battery saver is on — turn it off"));
+        }
+
         if (managerKsud(context) == null) {
             score -= 20;
             notes.append(note(-20, "no ksud in the selected manager (root only, no KernelSU)"));
