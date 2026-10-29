@@ -53,14 +53,18 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
             return new CompatibilityResult("Check inconclusive",
                     "Could not read the kernel release string.", false);
         }
+        String profile = release + ".conf";
+        if (new File(context.getFilesDir(), "ghostlock/" + profile).isFile()) {
+            Odds importedOdds = odds(context, true);
+            return new CompatibilityResult("Supported \u2014 imported profile \u00b7 ~" + importedOdds.score + "%",
+                    "Using the imported profile for " + profile + "." + importedOdds.detail, true);
+        }
         Set<String> profiles = profiles(context);
         if (profiles == null) {
             return new CompatibilityResult("Check inconclusive",
                     "Could not read the profile list. Connect to the internet and try again.", false);
         }
-        String profile = release + ".conf";
-        boolean imported = new File(context.getFilesDir(), "ghostlock/" + profile).isFile();
-        if (!imported && !profiles.contains(profile)) {
+        if (!profiles.contains(profile)) {
             Odds odds = odds(context, false);
             return new CompatibilityResult("Unsupported kernel " + release,
                     "GhostLock only runs on kernels with an exact uname -r profile and none exists for this one ("
@@ -68,8 +72,7 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
         }
         Odds odds = odds(context, true);
         return new CompatibilityResult("Supported \u2014 profile available \u00b7 ~" + odds.score + "%",
-                (imported ? "Using the imported profile for " + profile + "."
-                        : "Upstream ships " + profile + ". Start downloads and compiles it, then runs the GhostLock core.")
+                "Upstream ships " + profile + ". Start downloads and compiles it, then runs the GhostLock core."
                         + odds.detail,
                 true);
     }

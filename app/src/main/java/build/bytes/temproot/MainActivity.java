@@ -194,7 +194,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
             });
         }
 
-        setUpTabs();
+        setUpNav();
         setUpTools();
 
         String[] attackNames = new String[strategies.size()];
@@ -291,20 +291,14 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         if (tips != null) tips.setVisibility(strategy instanceof GhostLockStrategy ? View.VISIBLE : View.GONE);
     }
 
-    private void setUpTabs() {
-        TabLayout tabs = findViewById(R.id.tabLayout);
-        tabs.addTab(tabs.newTab().setText("Home"));
-        tabs.addTab(tabs.newTab().setText("Tools"));
-        tabs.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
-            @Override public void onTabSelected(TabLayout.Tab tab) {
-                syncTabs();
-            }
-            @Override public void onTabUnselected(TabLayout.Tab tab) {
-            }
-            @Override public void onTabReselected(TabLayout.Tab tab) {
-            }
+    private void setUpNav() {
+        com.google.android.material.bottomnavigation.BottomNavigationView nav =
+                findViewById(R.id.bottomNav);
+        nav.setOnItemSelectedListener(item -> {
+            syncPanel();
+            return true;
         });
-        syncTabs();
+        syncPanel();
         tabGesture = new android.view.GestureDetector(this,
                 new android.view.GestureDetector.SimpleOnGestureListener() {
                     @Override public boolean onFling(MotionEvent from, MotionEvent to, float vx, float vy) {
@@ -312,10 +306,8 @@ public class MainActivity extends AppCompatActivity implements IReporter {
                         float dx = to.getX() - from.getX();
                         float dy = to.getY() - from.getY();
                         if (Math.abs(dx) < 120 || Math.abs(dx) < Math.abs(dy) * 1.5f) return false;
-                        int position = tabs.getSelectedTabPosition() + (dx < 0 ? 1 : -1);
-                        if (position < 0 || position >= tabs.getTabCount()) return false;
-                        TabLayout.Tab next = tabs.getTabAt(position);
-                        if (next != null) next.select();
+                        if (dx < 0) nav.setSelectedItemId(R.id.nav_tools);
+                        else nav.setSelectedItemId(R.id.nav_home);
                         return true;
                     }
                 });
@@ -332,13 +324,14 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         super.onPostCreate(state);
         // Runs after view state restore, which can leave the tab strip and the
         // panels disagreeing about which page is visible.
-        syncTabs();
+        syncPanel();
     }
 
-    private void syncTabs() {
-        TabLayout tabs = findViewById(R.id.tabLayout);
-        if (tabs == null) return;
-        boolean tools = tabs.getSelectedTabPosition() == 1;
+    private void syncPanel() {
+        com.google.android.material.bottomnavigation.BottomNavigationView nav =
+                findViewById(R.id.bottomNav);
+        if (nav == null) return;
+        boolean tools = nav.getSelectedItemId() == R.id.nav_tools;
         findViewById(R.id.mainScroll).setVisibility(tools ? View.GONE : View.VISIBLE);
         findViewById(R.id.toolsPanel).setVisibility(tools ? View.VISIBLE : View.GONE);
     }
@@ -358,11 +351,8 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         String release = System.getProperty("os.version", "").trim();
         File dir = new File(getFilesDir(), "ghostlock");
         boolean conf = new File(dir, release + ".conf").isFile();
-        boolean compiled = new File(dir, release + ".glk1").isFile();
-        if (compiled) {
-            txtProfileStatus.setText("Profile ready for this kernel.");
-        } else if (conf) {
-            txtProfileStatus.setText("Profile imported. It is compiled when GhostLock starts.");
+        if (conf) {
+            txtProfileStatus.setText("Profile present for this kernel. It is compiled when GhostLock starts.");
         } else if (release.isEmpty()) {
             txtProfileStatus.setText("Cannot read the kernel release.");
         } else {

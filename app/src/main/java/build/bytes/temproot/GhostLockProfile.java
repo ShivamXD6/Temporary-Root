@@ -43,19 +43,25 @@ final class GhostLockProfile {
         if (!dir.isDirectory() && !dir.mkdirs()) throw new IOException("cannot create " + dir);
 
         File profile = new File(dir, release + ".conf");
+        boolean downloaded = false;
         if (!profile.isFile() || profile.length() == 0) {
             reporter.report("downloading profile " + release + ".conf\n");
             if (!fetch(profile, release + ".conf")) {
                 throw new IOException("no upstream profile for " + release);
             }
+            downloaded = true;
         }
-        for (String include : includes(profile)) {
+        List<String> includes = includes(profile);
+        for (String include : includes) {
             if (!download(dir, include)) {
                 throw new IOException("missing include " + include);
             }
         }
-        for (String preset : PRESETS) {
-            download(dir, preset); // optional
+        // Presets only matter for upstream profiles; an imported conf is self-contained.
+        if (downloaded || !includes.isEmpty()) {
+            for (String preset : PRESETS) {
+                download(dir, preset); // optional
+            }
         }
 
         reporter.report("compiling profile...\n");
