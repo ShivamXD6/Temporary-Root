@@ -251,7 +251,7 @@
                         android:layout_marginTop="8dp"
                         android:layout_marginEnd="6dp"
                         android:lineSpacingExtra="2dp"
-                        android:text="Best run: fresh reboot, phone cool and idle, 50%+ battery, battery saver off, this app in front, screen untouched. The estimate above measures exactly these, plus the current CPU load."
+                        android:text="Best run: fresh reboot, phone cool and idle, 50%+ battery, battery saver off, this app in front, screen untouched. The estimate above measures exactly these."
                         android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                         android:textColor="@color/on_surface_variant"
                         android:visibility="gone" />

@@ -123,16 +123,6 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
         score += d;
         notes.append(note(d, freeMb + " MB free RAM"));
 
-        // Busy CPUs widen the timing noise the race depends on (K(H)eaps, USENIX Sec '22).
-        int load = cpuLoadPercent();
-        if (load < 0) {
-            notes.append("   +0  CPU load not visible to apps without root\n");
-        } else {
-            d = clamp(Math.round(8 - load * 0.35f), -15, 8);
-            score += d;
-            notes.append(note(d, "CPU load ~" + load + "%"));
-        }
-
         PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
         int thermal = pm.getCurrentThermalStatus();
         d = clamp(8 - thermal * 6, -24, 8);
@@ -194,41 +184,6 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
 
     private static int clamp(int value, int min, int max) {
         return Math.max(min, Math.min(max, value));
-    }
-
-    /** Instantaneous CPU usage from /proc/stat, or -1 when it cannot be read. */
-    private static int cpuLoadPercent() {
-        long[] first = cpuTicks();
-        if (first == null) return -1;
-        try {
-            Thread.sleep(200);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return -1;
-        }
-        long[] second = cpuTicks();
-        if (second == null) return -1;
-        long total = second[0] - first[0];
-        long idle = second[1] - first[1];
-        if (total <= 0) return -1;
-        return (int) Math.max(0, Math.min(100, (total - idle) * 100 / total));
-    }
-
-    private static long[] cpuTicks() {
-        try (BufferedReader reader = new BufferedReader(new FileReader("/proc/stat"))) {
-            String line = reader.readLine();
-            if (line == null || !line.startsWith("cpu ")) return null;
-            String[] parts = line.trim().split("\\s+");
-            long total = 0, idle = 0;
-            for (int i = 1; i < parts.length; i++) {
-                long value = Long.parseLong(parts[i]);
-                total += value;
-                if (i == 4 || i == 5) idle += value; // idle + iowait
-            }
-            return new long[]{total, idle};
-        } catch (Exception e) {
-            return null;
-        }
     }
 
     private static String note(int delta, String text) {
