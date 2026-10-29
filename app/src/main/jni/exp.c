@@ -40,6 +40,23 @@ struct PatchRestore {
 
 static struct PatchRestore g_libcxx_r;
 
+/* The hook runs insmod as init, so its stderr is redirected to this file. */
+static void report_loader_log(void) {
+    int fd = open("/dev/trlog", O_RDONLY);
+    char buf[512];
+    ssize_t n = 0;
+    if (fd >= 0) {
+        n = read(fd, buf, sizeof(buf) - 1);
+        close(fd);
+    }
+    if (n <= 0) {
+        printf("insmod: no output - the hook could not start /vendor/bin/insmod\n");
+        return;
+    }
+    buf[n] = '\0';
+    printf("insmod: %s\n", buf);
+}
+
 /* IV = AES256_ECB_DEC(key, old_content) XOR desired
  * When kernel CBC-decrypts: plaintext = AES_DEC(key, ciphertext) XOR IV
  *   = AES_DEC(key, old_content) XOR IV
@@ -592,6 +609,7 @@ static int exploit(void) {
         }
     }
     printf("timeout: ERROR - check logcat & dmesg\n");
+    report_loader_log();
 done:
     if (rc == 3) printf("patch: ERROR - failed to patch files\n");
     return rc;
@@ -600,6 +618,7 @@ done:
 static int do_revert(void) {
     printf("=== revert (unlinking markers & clearing page cache) ===\n");
     unlink("/dev/tr");
+    unlink("/dev/trlog");
     unlink("/dev/trm0");
     unlink("/dev/trm1");
     unlink("/dev/trme0");

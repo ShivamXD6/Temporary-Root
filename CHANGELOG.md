@@ -40,6 +40,11 @@ The project restarted versioning at 2.0 with the GhostLock rewrite; git tags
 
 - Imported profiles were read from credential-encrypted storage, so a reboot dropped them.
 - Downloading could crash when reusing an already-downloaded APK.
+- A failed run no longer leaves the app claiming "Temporary Root Active": the status
+  now needs a working `su`, and a second Start reports that a reboot is required instead
+  of reporting success without doing anything.
+- When the kernel module fails to load, the console now prints insmod's own error
+  (or says the hook could not start `/vendor/bin/insmod`), instead of only `timeout`.
 
 ### Removed
 
