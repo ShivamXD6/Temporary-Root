@@ -136,7 +136,11 @@ public class MainActivity extends AppCompatActivity implements IReporter {
     @Override public void report(String msg) {
         Log.i(TAG, msg.trim());
         RunLog.append(this, msg);
-        mMain.post(() -> { outputView.append(msg); outputScroll.post(() -> outputScroll.fullScroll(View.FOCUS_DOWN)); });
+        mMain.post(() -> {
+            outputView.append(msg);
+            // Following the tail must not drag the page around when the console is closed.
+            if (isLogExpanded) outputScroll.post(() -> outputScroll.fullScroll(View.FOCUS_DOWN));
+        });
     }
 
     @Override protected void onCreate(Bundle state) {
@@ -551,15 +555,12 @@ public class MainActivity extends AppCompatActivity implements IReporter {
             CompatibilityResult result = selected.inspectRunningDevice(mDeCtx, selectedManager, this);
             mMain.post(() -> {
                 if (selected != strategy) return;
-                setLogExpanded(true);
+                // The verdict goes to the status pill; opening the console here
+                // just yanked the page around while the user read it.
                 report("\n=== device check ===\n" + result.asText() + "\n");
                 deviceOk = result.ok;
                 updateButtons();
                 statusView.setText(result.title);
-                // Expanding the console makes the log's follow-scroll drag this
-                // ScrollView down, which would hide the verdict card.
-                View scroll = findViewById(R.id.mainScroll);
-                scroll.post(() -> scroll.scrollTo(0, 0));
             });
         });
     }
