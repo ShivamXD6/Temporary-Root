@@ -830,12 +830,13 @@ public class MainActivity extends AppCompatActivity implements IReporter {
             Toast.makeText(this, "Cannot create download folder", Toast.LENGTH_SHORT).show();
             return;
         }
-        File target = alreadyDownloaded(apkDir, variant);
-        if (target != null) {
-            statusView.setText(target.getName() + " is already downloaded");
-            launchInstaller(target);
+        File existing = alreadyDownloaded(apkDir, variant);
+        if (existing != null) {
+            statusView.setText(existing.getName() + " is already downloaded");
+            launchInstaller(existing);
             return;
         }
+        File target = new File(apkDir, variant.name);
 
         btnDownloadManager.setEnabled(false);
         downloadProgress.setVisibility(View.VISIBLE);
@@ -885,6 +886,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
                     launchInstaller(target);
                 });
             } catch (Exception e) {
+                Log.w(TAG, "Download failed: " + variant.name + " from " + variant.url, e);
                 part.delete();
                 mMain.post(() -> {
                     downloadProgress.setVisibility(View.GONE);
