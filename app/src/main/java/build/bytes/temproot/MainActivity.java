@@ -279,14 +279,18 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         if (btnToggleLog != null) btnToggleLog.setImageResource(expanded ? R.drawable.ic_expand_less : R.drawable.ic_expand_more);
     }
 
+    /** Samsung kernels only accept the diabl0w fork's ksud. */
+    private boolean isSamsungDevice() {
+        return Build.MANUFACTURER.equalsIgnoreCase("samsung")
+                || Build.BRAND.equalsIgnoreCase("samsung");
+    }
+
     private List<ManagerEntry> createKnownManagers() {
         List<ManagerEntry> list = new ArrayList<>();
 
-        // Samsung kernels only accept the diabl0w fork's ksud, so on a Samsung
-        // device the other managers are hidden instead of offering a broken run.
-        boolean isSamsung = Build.MANUFACTURER.equalsIgnoreCase("samsung")
-                || Build.BRAND.equalsIgnoreCase("samsung");
-        if (isSamsung) {
+        // Other managers are hidden on Samsung instead of offering a run that
+        // cannot work there.
+        if (isSamsungDevice()) {
             list.add(new ManagerEntry(
                     "Samsung KernelSU",
                     "diabl0w fork · required for Samsung kernels",
@@ -381,7 +385,12 @@ public class MainActivity extends AppCompatActivity implements IReporter {
             managers.add(entry);
         }
 
-        for (ApplicationInfo app : pm.getInstalledApplications(0)) {
+        // Adopting another KSU build on Samsung would offer a broken handoff,
+        // so the fork stays the only entry there.
+        List<ApplicationInfo> installed = isSamsungDevice()
+                ? Collections.emptyList()
+                : pm.getInstalledApplications(0);
+        for (ApplicationInfo app : installed) {
             if ((app.flags & ApplicationInfo.FLAG_SYSTEM) == 0
                     && !claimedPackages.contains(app.packageName)
                     && ExploitRunner.hasKsud(app)) {
