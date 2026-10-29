@@ -1,7 +1,11 @@
 package build.bytes.temproot;
 
+import android.app.ActivityManager;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
+import android.os.BatteryManager;
+import android.os.PowerManager;
+import android.os.SystemClock;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -14,6 +18,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -55,13 +60,100 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
         }
         String profile = release + ".conf";
         if (!profiles.contains(profile)) {
+            Odds odds = odds(context, false);
             return new CompatibilityResult("Unsupported kernel " + release,
                     "GhostLock only runs on kernels with an exact uname -r profile and none exists for this one ("
-                            + profiles.size() + " profiles published).", false);
+                            + profiles.size() + " profiles published)." + odds.detail, false);
         }
-        return new CompatibilityResult("Supported — profile available",
-                "Upstream ships " + profile + ". Start downloads and compiles it, then runs the GhostLock core.",
+        Odds odds = odds(context, true);
+        return new CompatibilityResult("Supported \u2014 profile available \u00b7 ~" + odds.score + "%",
+                "Upstream ships " + profile + ". Start downloads and compiles it, then runs the GhostLock core."
+                        + odds.detail,
                 true);
+    }
+
+    /** Estimated chance of getting root right now, plus the reasons. */
+    private static final class Odds {
+        final int score;
+        final String detail;
+
+        Odds(int score, String detail) {
+            this.score = score;
+            this.detail = detail;
+        }
+    }
+
+    /**
+     * Heuristic from measurable device state, not a measurement: the primitive
+     * itself is ~97% stable on a matched profile, so the score mostly reflects
+     * environment (memory, heat, load) and the module handoff.
+     */
+    private static Odds odds(Context context, boolean supported) {
+        int score = supported ? 90 : 0;
+        StringBuilder notes = new StringBuilder();
+
+        ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        ActivityManager.MemoryInfo mem = new ActivityManager.MemoryInfo();
+        am.getMemoryInfo(mem);
+        long freeMb = mem.availMem >> 20;
+        int d = freeMb >= 2500 ? 2 : freeMb >= 1500 ? 0 : freeMb >= 800 ? -5 : -15;
+        score += d;
+        notes.append(note(d, freeMb + " MB free RAM"));
+
+        PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+        int thermal = pm.getCurrentThermalStatus();
+        d = thermal <= PowerManager.THERMAL_STATUS_LIGHT ? 0
+                : thermal == PowerManager.THERMAL_STATUS_MODERATE ? -6 : -18;
+        score += d;
+        notes.append(note(d, "thermal " + thermalName(thermal)));
+
+        long upMin = SystemClock.elapsedRealtime() / 60000;
+        d = upMin < 30 ? 2 : upMin < 360 ? 0 : upMin < 1440 ? -4 : -8;
+        score += d;
+        notes.append(note(d, "up " + (upMin < 60 ? upMin + " min" : upMin / 60 + " h") + " since boot"));
+
+        BatteryManager bm = (BatteryManager) context.getSystemService(Context.BATTERY_SERVICE);
+        int pct = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
+        if (pct < 0 || pct > 100) pct = 50;
+        d = pct >= 50 ? 0 : pct >= 20 ? -3 : -12;
+        score += d;
+        notes.append(note(d, "battery " + pct + "%"));
+
+        if (managerKsud(context) == null) {
+            score -= 20;
+            notes.append(note(-20, "no ksud in the selected manager (root only, no KernelSU)"));
+        }
+
+        String log = RunLog.read(context);
+        if (log.contains("=== run start") && !log.contains("=== run end")) {
+            score -= 15;
+            notes.append(note(-15, "last run never finished — reboot before retrying"));
+        }
+
+        score = Math.max(0, Math.min(97, score));
+        String detail = (supported
+                ? "\n\nEstimated success ~" + score + "%  (from current device state)"
+                : "\n\nEstimated success 0%  — this kernel has no GhostLock profile")
+                + "\n" + notes
+                + "  A missed race can panic and reboot the phone; reboot before retrying.";
+        return new Odds(score, detail);
+    }
+
+    private static String note(int delta, String text) {
+        return String.format(Locale.US, "  %+d  %s%n", delta, text);
+    }
+
+    private static String thermalName(int status) {
+        switch (status) {
+            case PowerManager.THERMAL_STATUS_NONE: return "NONE";
+            case PowerManager.THERMAL_STATUS_LIGHT: return "LIGHT";
+            case PowerManager.THERMAL_STATUS_MODERATE: return "MODERATE";
+            case PowerManager.THERMAL_STATUS_SEVERE: return "SEVERE";
+            case PowerManager.THERMAL_STATUS_CRITICAL: return "CRITICAL";
+            case PowerManager.THERMAL_STATUS_EMERGENCY: return "EMERGENCY";
+            case PowerManager.THERMAL_STATUS_SHUTDOWN: return "SHUTDOWN";
+            default: return "unknown";
+        }
     }
 
     @Override
@@ -71,6 +163,7 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
             reporter.report("ghostlock: cannot read kernel release\n");
             return 2;
         }
+        reporter.report(odds(context, true).detail.trim() + "\n");
         try {
             File profile = GhostLockProfile.compile(context, release, reporter);
             File bin = new File(context.getApplicationInfo().nativeLibraryDir, "libghostlock.so");
