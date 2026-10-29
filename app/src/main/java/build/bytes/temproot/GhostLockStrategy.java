@@ -19,9 +19,11 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.Calendar;
 import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * CVE-2026-43499 (futex PI UAF). Unlike DirtyFrag this exploit is profile-driven:
@@ -60,7 +62,7 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
         String profile = release + ".conf";
         Set<String> profiles = profiles(context);
         if (profiles != null && profiles.contains(profile)) {
-            Odds odds = odds(context, 66);
+            Odds odds = odds(context, 50);
             return new CompatibilityResult("Supported \u2014 profile available \u00b7 ~" + odds.score + "%",
                     "Upstream ships " + profile + ". Start downloads and compiles it, then runs the GhostLock core."
                             + odds.detail,
@@ -81,12 +83,12 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
                         + profiles.size() + " profiles published).", false);
     }
 
-    /** 66 for an upstream profile, 5 for an imported one, 0 when there is none. */
+    /** 50 for an upstream profile, 5 for an imported one, 0 when there is none. */
     private static int baseOdds(Context context) {
         String release = System.getProperty("os.version", "").trim();
         File cache = new File(context.getFilesDir(), CACHE);
         Set<String> cached = cache.isFile() ? read(cache) : null;
-        if (cached != null && cached.contains(release + ".conf")) return 66;
+        if (cached != null && cached.contains(release + ".conf")) return 50;
         return new File(context.getFilesDir(), "ghostlock/" + release + ".conf").isFile() ? 5 : 0;
     }
 
@@ -117,50 +119,116 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
         ActivityManager.MemoryInfo mem = new ActivityManager.MemoryInfo();
         am.getMemoryInfo(mem);
         long freeMb = mem.availMem >> 20;
-        int d = freeMb >= 2500 ? 10 : freeMb >= 1500 ? 0 : freeMb >= 800 ? -8 : -18;
+        int d = clamp(Math.round((freeMb - 900) / 210f), -15, 10);
         score += d;
         notes.append(note(d, freeMb + " MB free RAM"));
 
+        // Busy CPUs widen the timing noise the race depends on (K(H)eaps, USENIX Sec '22).
+        int load = cpuLoadPercent();
+        if (load < 0) {
+            notes.append("   -   CPU load unreadable, skipped\n");
+        } else {
+            d = clamp(Math.round(8 - load * 0.35f), -15, 8);
+            score += d;
+            notes.append(note(d, "CPU load ~" + load + "%"));
+        }
+
         PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
         int thermal = pm.getCurrentThermalStatus();
-        d = thermal <= PowerManager.THERMAL_STATUS_LIGHT ? 8
-                : thermal == PowerManager.THERMAL_STATUS_MODERATE ? -8 : -20;
+        d = clamp(8 - thermal * 6, -24, 8);
         score += d;
         notes.append(note(d, "thermal " + thermalName(thermal)));
 
         long upMin = SystemClock.elapsedRealtime() / 60000;
-        d = upMin < 30 ? 10 : upMin < 360 ? 0 : upMin < 1440 ? -6 : -10;
+        d = clamp(8 - Math.round(upMin / 90f), -16, 8);
         score += d;
         notes.append(note(d, "up " + (upMin < 60 ? upMin + " min" : upMin / 60 + " h") + " since boot"));
 
         BatteryManager bm = (BatteryManager) context.getSystemService(Context.BATTERY_SERVICE);
         int pct = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
         if (pct < 0 || pct > 100) pct = 50;
-        d = pct >= 50 ? 4 : pct >= 20 ? -2 : -12;
+        d = clamp(Math.round((pct - 30) * 0.15f), -10, 4);
         score += d;
         notes.append(note(d, "battery " + pct + "%"));
 
         if (pm.isPowerSaveMode()) {
-            score -= 10;
-            notes.append(note(-10, "battery saver is on — turn it off"));
+            score -= 8;
+            notes.append(note(-8, "battery saver is on \u2014 turn it off"));
+        }
+
+        if (pm.isDeviceIdleMode()) {
+            score -= 6;
+            notes.append(note(-6, "device is in doze \u2014 wake it up first"));
         }
 
         if (managerKsud(context) == null) {
-            score -= 25;
-            notes.append(note(-25, "no ksud in the selected manager (root only, no KernelSU)"));
+            score -= 20;
+            notes.append(note(-20, "no ksud in the selected manager (root only, no KernelSU)"));
         }
 
         String log = RunLog.read(context);
         if (log.contains("=== run start") && !log.contains("=== run end")) {
-            score -= 15;
-            notes.append(note(-15, "last run never finished — reboot before retrying"));
+            score -= 12;
+            notes.append(note(-12, "last run never finished \u2014 reboot before retrying"));
         }
 
-        score = Math.max(5, Math.min(base >= 66 ? 95 : 50, score));
+        int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+        if (hour >= 21 || hour < 8) {
+            score += 3;
+            notes.append(note(3, "quiet hours \u2014 fewer background apps competing"));
+        } else {
+            notes.append(note(0, "daytime \u2014 background apps are more active"));
+        }
+
+        // Same device, same state: the race still varies run to run.
+        int jitter = ThreadLocalRandom.current().nextInt(-7, 8);
+        score += jitter;
+        notes.append(note(jitter, "run-to-run variance"));
+
+        score = Math.max(5, Math.min(95, score));
         String detail = "\n\nEstimated success ~" + score + "%  (from current device state)"
                 + "\n" + notes
                 + "  A missed race can panic and reboot the device; reboot before retrying.";
         return new Odds(score, detail);
+    }
+
+    private static int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    /** Instantaneous CPU usage from /proc/stat, or -1 when it cannot be read. */
+    private static int cpuLoadPercent() {
+        long[] first = cpuTicks();
+        if (first == null) return -1;
+        try {
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return -1;
+        }
+        long[] second = cpuTicks();
+        if (second == null) return -1;
+        long total = second[0] - first[0];
+        long idle = second[1] - first[1];
+        if (total <= 0) return -1;
+        return (int) Math.max(0, Math.min(100, (total - idle) * 100 / total));
+    }
+
+    private static long[] cpuTicks() {
+        try (BufferedReader reader = new BufferedReader(new FileReader("/proc/stat"))) {
+            String line = reader.readLine();
+            if (line == null || !line.startsWith("cpu ")) return null;
+            String[] parts = line.trim().split("\\s+");
+            long total = 0, idle = 0;
+            for (int i = 1; i < parts.length; i++) {
+                long value = Long.parseLong(parts[i]);
+                total += value;
+                if (i == 4 || i == 5) idle += value; // idle + iowait
+            }
+            return new long[]{total, idle};
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private static String note(int delta, String text) {
