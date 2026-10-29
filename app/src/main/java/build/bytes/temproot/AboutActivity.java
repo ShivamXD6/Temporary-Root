@@ -1,5 +1,8 @@
 package build.bytes.temproot;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -48,9 +51,26 @@ public class AboutActivity extends AppCompatActivity {
         addLink(inflater, links, "Source code", "github.com/ShivamXD6/Temporary-Root", GITHUB_APP);
 
         LinearLayout donate = findViewById(R.id.donateContainer);
-        addLink(inflater, donate, "diabl0w — DFRoot", "The DirtyFrag chain this app is built on", "https://github.com/sponsors/diabl0w");
-        addLink(inflater, donate, "YuKongA — GhostLock", "CVE-2026-43499 profiles and core", "https://github.com/sponsors/YuKongA");
-        addLink(inflater, donate, "tiann — KernelSU", "Manager and module loading", "https://github.com/sponsors/tiann");
+        addLink(inflater, donate, "GitHub Sponsors", "Monthly or one-time, via GitHub", "https://github.com/sponsors/ShivamXD6");
+        addLink(inflater, donate, "PayPal", "paypal.me/ShivamXD6", "https://paypal.me/ShivamXD6");
+        addLink(inflater, donate, "UPI QR code", "Scan from any UPI app", "https://i.ibb.co/5g4J2RXR/1f38d6d7-a8a2-4696-88e6-9cf503e0592c.png");
+        addCopy(inflater, donate, "UPI ID (SBI)", "shivamashokdhage6@oksbi", "shivamashokdhage6@oksbi");
+        addCopy(inflater, donate, "UPI ID (superyes)", "shivam.dhage@superyes", "shivam.dhage@superyes");
+    }
+
+    /** A row that copies a short value instead of opening a browser. */
+    private void addCopy(LayoutInflater inflater, LinearLayout container,
+                         String title, String subtitle, String value) {
+        View row = inflater.inflate(R.layout.item_link, container, false);
+        ((TextView) row.findViewById(R.id.linkTitle)).setText(title);
+        ((TextView) row.findViewById(R.id.linkSubtitle)).setText(subtitle);
+        ((android.widget.ImageView) row.findViewById(R.id.linkIcon)).setImageResource(R.drawable.ic_copy);
+        row.setOnClickListener(v -> {
+            ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            clipboard.setPrimaryClip(ClipData.newPlainText(title, value));
+            Toast.makeText(this, "Copied " + value, Toast.LENGTH_SHORT).show();
+        });
+        container.addView(row);
     }
 
     private void addLink(LayoutInflater inflater, LinearLayout container,

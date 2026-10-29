@@ -95,7 +95,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Support the developers"
+                        android:text="Support the project"
                         android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
                         android:textColor="@color/on_surface" />
 
@@ -104,7 +104,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
                         android:layout_marginBottom="6dp"
-                        android:text="Donations go to the people whose research this build stands on"
+                        android:text="Free and open source. Donations pay for the devices and time behind it."
                         android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                         android:textColor="@color/on_surface_variant" />
 

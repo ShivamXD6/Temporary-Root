@@ -25,6 +25,7 @@
             android:background="@drawable/bg_icon_circle">
 
             <ImageView
+                android:id="@+id/linkIcon"
                 android:layout_width="18dp"
                 android:layout_height="18dp"
                 android:layout_gravity="center"
