@@ -426,6 +426,13 @@ public class MainActivity extends AppCompatActivity implements IReporter {
             }
         }
         spinnerSuManager.setSelection(selectedIndex);
+        // A saved choice that is no longer installed (or was never installed)
+        // must not leave the app pointing at a manager it cannot launch.
+        if (!managers.isEmpty() && !managers.get(selectedIndex).isInstalled
+                && managers.get(0).isInstalled) {
+            selectedIndex = 0;
+            spinnerSuManager.setSelection(0);
+        }
         if (!managers.isEmpty()) {
             selectedEntry = managers.get(selectedIndex);
             if (selectedEntry.isInstalled && selectedEntry.hasKsud) {
@@ -614,8 +621,8 @@ public class MainActivity extends AppCompatActivity implements IReporter {
                     }
                     return;
                 }
-                if (variants.size() == 1) startDownload(variants.get(0));
-                else showVariantPicker(variants);
+                if (hasSpoof(variants) && hasAbiBuild(variants)) showVariantPicker(variants);
+                else startDownload(variants.get(recommendedIndex(variants)));
             });
         });
     }
@@ -710,6 +717,21 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         }
     }
 
+    private static boolean hasSpoof(List<Variant> variants) {
+        for (Variant v : variants) {
+            if (v.name.toLowerCase().contains("spoof")) return true;
+        }
+        return false;
+    }
+
+    private static boolean hasAbiBuild(List<Variant> variants) {
+        String abi = Build.SUPPORTED_ABIS.length > 0 ? Build.SUPPORTED_ABIS[0] : "arm64-v8a";
+        for (Variant v : variants) {
+            if (matchesAbi(v.name, abi)) return true;
+        }
+        return false;
+    }
+
     /** Plain-English difference between otherwise similar filenames. */
     private static String describeVariant(Variant v, String abi) {
         String name = v.name.toLowerCase();
@@ -755,6 +777,51 @@ public class MainActivity extends AppCompatActivity implements IReporter {
                 : String.format(java.util.Locale.US, "%.0f KB", bytes / 1024.0);
     }
 
+    /** APKs already in our download folder belong to a manager decided by filename. */
+    private static final String[] MANAGER_KEYS = {
+            "kernelsunext", "sukisuultra", "originsu", "bakasu", "kernelsu", "apatch", "magisk"
+    };
+
+    private static String normalizeName(String s) {
+        return s.toLowerCase().replaceAll("[^a-z0-9]", "");
+    }
+
+    /**
+     * Reuse an APK already sitting in the download folder instead of fetching it
+     * again, even when the release renamed the file. Returns null when nothing
+     * clearly belongs to the selected manager.
+     */
+    private File alreadyDownloaded(File apkDir, Variant variant) {
+        File exact = new File(apkDir, variant.name);
+        if (exact.isFile() && exact.length() > 100000) return exact;
+
+        String key = selectedEntry == null ? ""
+                : normalizeName(selectedEntry.githubRepo != null
+                        ? selectedEntry.githubRepo.substring(selectedEntry.githubRepo.lastIndexOf('/') + 1)
+                        : selectedEntry.title);
+        if (key.isEmpty()) return null;
+
+        File best = null;
+        File[] files = apkDir.listFiles();
+        if (files == null) return null;
+        for (File f : files) {
+            if (!f.isFile() || !f.getName().toLowerCase().endsWith(".apk") || f.length() < 100000) continue;
+            String name = normalizeName(f.getName());
+            if (!name.contains(key)) continue;
+            // "kernelsu" also matches "kernelsunext"; only accept the longest key.
+            boolean wrongManager = false;
+            for (String other : MANAGER_KEYS) {
+                if (other.length() > key.length() && name.contains(other)) {
+                    wrongManager = true;
+                    break;
+                }
+            }
+            if (wrongManager) continue;
+            if (best == null || f.lastModified() > best.lastModified()) best = f;
+        }
+        return best;
+    }
+
     private void startDownload(Variant variant) {
         File dir = getExternalFilesDir(null);
         if (dir == null) dir = getCacheDir();
@@ -763,9 +830,9 @@ public class MainActivity extends AppCompatActivity implements IReporter {
             Toast.makeText(this, "Cannot create download folder", Toast.LENGTH_SHORT).show();
             return;
         }
-        File target = new File(apkDir, variant.name);
-        if (target.isFile() && target.length() > 100000) {
-            statusView.setText(variant.name + " is already downloaded");
+        File target = alreadyDownloaded(apkDir, variant);
+        if (target != null) {
+            statusView.setText(target.getName() + " is already downloaded");
             launchInstaller(target);
             return;
         }

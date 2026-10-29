@@ -1,6 +1,7 @@
 package build.bytes.temproot;
 
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -82,6 +83,11 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
             pb.redirectErrorStream(true);
             pb.environment().put("GHOSTLOCK_HOME", profile.getParentFile().getAbsolutePath());
             pb.environment().put("TMPDIR", context.getCacheDir().getAbsolutePath());
+            // The handoff script falls back to a hardcoded list of managers
+            // (ReSukiSU, KernelSU-Next, ...). Point it at the manager the user
+            // picked so forks like OriginSU get the module instead.
+            String ksud = managerKsud(context);
+            if (ksud != null) pb.environment().put("GHOSTLOCK_KSUD", ksud);
             Process process = pb.start();
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                 for (String line; (line = reader.readLine()) != null; ) reporter.report(line + "\n");
@@ -90,6 +96,22 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
         } catch (Exception e) {
             reporter.report("ghostlock: " + e.getMessage() + "\n");
             return 2;
+        }
+    }
+
+    /** ksud shipped by the manager currently selected in the app, or null. */
+    private static String managerKsud(Context context) {
+        try {
+            String pkg = context.createDeviceProtectedStorageContext()
+                    .getSharedPreferences(ExploitRunner.PREFS_NAME, Context.MODE_PRIVATE)
+                    .getString(ExploitRunner.PREF_SU_MANAGER, null);
+            if (pkg == null) return null;
+            ApplicationInfo app = context.getPackageManager().getApplicationInfo(pkg, 0);
+            File ksud = new File(app.nativeLibraryDir, "libksud.so");
+            if (!ksud.isFile()) ksud = new File(app.nativeLibraryDir, "ksud");
+            return ksud.isFile() ? ksud.getAbsolutePath() : null;
+        } catch (Exception e) {
+            return null;
         }
     }
 
