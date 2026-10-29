@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
-    <!-- DownloadManager writes manager APKs into the public Downloads folder. -->
-    <external-path
-        name="downloads"
-        path="Download/" />
+    <!-- In-app downloads land in getExternalFilesDir()/apk before installing. -->
+    <external-files-path
+        name="apk"
+        path="apk/" />
+    <!-- Fallback when external storage is unavailable. -->
+    <cache-path
+        name="cache-apk"
+        path="apk/" />
 </paths>

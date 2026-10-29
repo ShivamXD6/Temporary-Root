@@ -1,11 +1,11 @@
 <resources>
-    <!-- Surfaces -->
-    <color name="surface">#111318</color>
-    <color name="surface_low">#171A20</color>
-    <color name="surface_container">#1B1E24</color>
-    <color name="surface_container_high">#23262C</color>
-    <color name="surface_container_highest">#2A2E35</color>
-    <color name="console">#0B0D10</color>
+    <!-- Surfaces (AMOLED black) -->
+    <color name="surface">#000000</color>
+    <color name="surface_low">#000000</color>
+    <color name="surface_container">#0A0A0A</color>
+    <color name="surface_container_high">#141414</color>
+    <color name="surface_container_highest">#1C1C1C</color>
+    <color name="console">#000000</color>
 
     <!-- Content -->
     <color name="on_surface">#E3E6EB</color>

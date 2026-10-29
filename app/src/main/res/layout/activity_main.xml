@@ -163,6 +163,15 @@
                             android:textAllCaps="false"
                             app:cornerRadius="22dp" />
                     </LinearLayout>
+
+                    <ProgressBar
+                        android:id="@+id/downloadProgress"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="4dp"
+                        android:layout_marginTop="10dp"
+                        android:max="100"
+                        android:visibility="gone" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

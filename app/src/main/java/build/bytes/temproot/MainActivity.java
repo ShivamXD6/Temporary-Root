@@ -1,7 +1,5 @@
 package build.bytes.temproot;
 
-import android.app.DownloadManager;
-import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -16,7 +14,6 @@ import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
@@ -29,6 +26,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -67,6 +65,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
     private ScrollView outputScroll;
     private TextView outputView, statusView;
     private View statusDot;
+    private ProgressBar downloadProgress;
     private Spinner spinnerSuManager, spinnerVulnerability;
     private View logContentContainer;
     private ImageView btnToggleLog;
@@ -82,25 +81,9 @@ public class MainActivity extends AppCompatActivity implements IReporter {
     private VulnerabilityStrategy strategy;
     private ManagerEntry selectedEntry;
     private String selectedManager;
-    private long activeDownloadId = -1;
     private volatile boolean externalRoot = false;
     private volatile long externalRootCheckedAt = 0;
     private Boolean deviceOk;
-
-    private final BroadcastReceiver downloadReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
-            if (id == -1 || id != activeDownloadId) return;
-
-            DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-            Uri apkUri = dm == null ? null : dm.getUriForDownloadedFile(id);
-            if (apkUri == null) return;
-
-            Toast.makeText(context, "Download complete. Launching installer…", Toast.LENGTH_LONG).show();
-            if (ensureInstallPermission()) installApk(apkUri);
-        }
-    };
 
     private int dpToPx(int dp) {
         return Math.round(dp * getResources().getDisplayMetrics().density);
@@ -155,6 +138,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         btnRun = findViewById(R.id.btnRun);
         btnOpenManager = findViewById(R.id.btnOpenManager);
         btnDownloadManager = findViewById(R.id.btnDownloadManager);
+        downloadProgress = findViewById(R.id.downloadProgress);
         outputScroll = findViewById(R.id.outputScroll);
         outputView = findViewById(R.id.outputView);
         statusView = findViewById(R.id.statusView);
@@ -210,7 +194,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
             @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 if (position >= 0 && position < managers.size()) {
                     selectedEntry = managers.get(position);
-                    if (selectedEntry.isInstalled && selectedEntry.hasKsud) {
+                    if (selectedEntry.isInstalled) {
                         selectedManager = selectedEntry.installedPackageName;
                         mDeCtx.getSharedPreferences(ExploitRunner.PREFS_NAME, MODE_PRIVATE)
                                 .edit().putString(ExploitRunner.PREF_SU_MANAGER, selectedManager).apply();
@@ -249,13 +233,6 @@ public class MainActivity extends AppCompatActivity implements IReporter {
             mExec.execute(this::runExploit);
         });
 
-        IntentFilter downloadFilter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(downloadReceiver, downloadFilter, Context.RECEIVER_NOT_EXPORTED);
-        } else {
-            registerReceiver(downloadReceiver, downloadFilter);
-        }
-
         updateButtons();
 
         // A previous run that never reached its end marker died mid-exploit; pull
@@ -266,10 +243,6 @@ public class MainActivity extends AppCompatActivity implements IReporter {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        try {
-            unregisterReceiver(downloadReceiver);
-        } catch (Exception ignored) {
-        }
     }
 
     @Override
@@ -395,7 +368,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
                 // them; adopt them into the known entry so the repo stays downloadable.
                 ManagerEntry known = null;
                 for (ManagerEntry entry : managers) {
-                    if (!entry.isInstalled && entry.title.equalsIgnoreCase(label)) {
+                    if (!entry.isInstalled && label.toLowerCase().contains(entry.title.toLowerCase())) {
                         known = entry;
                         break;
                     }
@@ -489,7 +462,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
     }
 
     private void updateButtons() {
-        boolean isInstalled = selectedEntry != null && selectedEntry.isInstalled && selectedEntry.hasKsud;
+        boolean isInstalled = selectedEntry != null && selectedEntry.isInstalled;
         boolean hasDownload = selectedEntry != null && (selectedEntry.githubRepo != null || selectedEntry.fallbackWebUrl != null);
         boolean isActive = isRootActive();
 
@@ -588,12 +561,26 @@ public class MainActivity extends AppCompatActivity implements IReporter {
     }
 
     private void openManager() {
-        if (selectedManager == null) return;
-        Intent launch = getPackageManager().getLaunchIntentForPackage(selectedManager);
+        String pkg = selectedManager;
+        if (pkg == null && selectedEntry != null) pkg = selectedEntry.installedPackageName;
+        if (pkg == null) return;
+        Intent launch = getPackageManager().getLaunchIntentForPackage(pkg);
         if (launch == null) {
             Toast.makeText(this, "No launch activity for this manager", Toast.LENGTH_LONG).show();
         } else {
             startActivity(launch);
+        }
+    }
+
+    /** One APK attached to the manager's latest GitHub release. */
+    private static final class Variant {
+        final String name, url;
+        final long size;
+
+        Variant(String name, String url, long size) {
+            this.name = name;
+            this.url = url;
+            this.size = size;
         }
     }
 
@@ -602,146 +589,205 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         if (!ensureInstallPermission()) return;
 
         btnDownloadManager.setEnabled(false);
-        statusView.setText("Fetching latest " + selectedEntry.title + " release APK…");
-        Toast.makeText(this, "Checking latest release on GitHub…", Toast.LENGTH_SHORT).show();
+        statusView.setText("Fetching " + selectedEntry.title + " releases…");
 
         mExec.execute(() -> {
-            String standardUrl = null;
-            String standardFileName = null;
-            String spoofedUrl = null;
-            String spoofedFileName = null;
-
-            if (selectedEntry.githubRepo != null) {
-                try {
-                    String apiUrl = "https://api.github.com/repos/" + selectedEntry.githubRepo + "/releases/latest";
-                    URL url = new URL(apiUrl);
-                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                    conn.setRequestProperty("User-Agent", "TemporaryRootApp");
-                    conn.setConnectTimeout(8000);
-                    conn.setReadTimeout(8000);
-
-                    if (conn.getResponseCode() == 200) {
-                        BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                        StringBuilder sb = new StringBuilder();
-                        for (String line; (line = reader.readLine()) != null; ) sb.append(line);
-                        reader.close();
-
-                        JSONObject release = new JSONObject(sb.toString());
-                        JSONArray assets = release.optJSONArray("assets");
-                        int standardScore = -1;
-                        int spoofedScore = -1;
-                        if (assets != null) {
-                            for (int i = 0; i < assets.length(); i++) {
-                                JSONObject asset = assets.getJSONObject(i);
-                                String name = asset.optString("name", "");
-                                String downloadUrl = asset.optString("browser_download_url", "");
-                                if (!name.endsWith(".apk") || downloadUrl.isEmpty()) continue;
-
-                                int score = apkScore(name);
-                                if (score < 0) continue;
-                                String lower = name.toLowerCase();
-                                if (lower.contains("spoof")) {
-                                    if (score > spoofedScore) {
-                                        spoofedScore = score;
-                                        spoofedUrl = downloadUrl;
-                                        spoofedFileName = name;
-                                    }
-                                } else if (score > standardScore) {
-                                    standardScore = score;
-                                    standardUrl = downloadUrl;
-                                    standardFileName = name;
-                                }
-                            }
-                        }
-                    }
-                } catch (Exception e) {
-                    Log.w(TAG, "GitHub API fetch failed", e);
-                }
-            }
-
-            final String finalStandardUrl = standardUrl;
-            final String finalStandardName = standardFileName != null ? standardFileName : selectedEntry.title.replaceAll("[^a-zA-Z0-9]", "_") + ".apk";
-            final String finalSpoofedUrl = spoofedUrl;
-            final String finalSpoofedName = spoofedFileName != null ? spoofedFileName : selectedEntry.title.replaceAll("[^a-zA-Z0-9]", "_") + "_spoof.apk";
-
+            List<Variant> variants = selectedEntry.githubRepo == null
+                    ? new ArrayList<>() : fetchVariants(selectedEntry.githubRepo);
             mMain.post(() -> {
                 btnDownloadManager.setEnabled(true);
-
-                if (finalSpoofedUrl != null && finalStandardUrl != null) {
-                    new MaterialAlertDialogBuilder(MainActivity.this)
-                            .setTitle("Choose " + selectedEntry.title + " Variant")
-                            .setMessage("Both Spoofed and Standard release packages are available. Which version would you like to install?")
-                            .setPositiveButton("Spoofed Version", (dialog, which) -> {
-                                startDownload(finalSpoofedUrl, finalSpoofedName);
-                            })
-                            .setNegativeButton("Standard Release", (dialog, which) -> {
-                                startDownload(finalStandardUrl, finalStandardName);
-                            })
-                            .setNeutralButton("Cancel", null)
-                            .show();
-                } else if (finalSpoofedUrl != null) {
-                    startDownload(finalSpoofedUrl, finalSpoofedName);
-                } else if (finalStandardUrl != null) {
-                    startDownload(finalStandardUrl, finalStandardName);
-                } else if (selectedEntry.fallbackWebUrl != null) {
-                    statusView.setText("Redirecting to " + selectedEntry.title + " release page…");
-                    try {
-                        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(selectedEntry.fallbackWebUrl));
-                        intent.addCategory(Intent.CATEGORY_BROWSABLE);
-                        startActivity(Intent.createChooser(intent, "Download manager APK via browser"));
-                    } catch (Exception e) {
-                        Toast.makeText(MainActivity.this, "Unable to open link: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                if (variants.isEmpty()) {
+                    if (selectedEntry.fallbackWebUrl != null) {
+                        statusView.setText("Opening " + selectedEntry.title + " releases…");
+                        try {
+                            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(selectedEntry.fallbackWebUrl));
+                            intent.addCategory(Intent.CATEGORY_BROWSABLE);
+                            startActivity(Intent.createChooser(intent, "Download manager APK via browser"));
+                        } catch (Exception e) {
+                            Toast.makeText(MainActivity.this, "Unable to open link: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        }
+                    } else {
+                        Toast.makeText(MainActivity.this, "No download link available", Toast.LENGTH_SHORT).show();
                     }
-                } else {
-                    Toast.makeText(MainActivity.this, "No download link available", Toast.LENGTH_SHORT).show();
+                    return;
                 }
+                if (variants.size() == 1) startDownload(variants.get(0));
+                else showVariantPicker(variants);
             });
         });
     }
 
+    /** Every .apk asset of the latest release, in release order. */
+    private static List<Variant> fetchVariants(String repo) {
+        List<Variant> out = new ArrayList<>();
+        HttpURLConnection conn = null;
+        try {
+            conn = (HttpURLConnection) new URL(
+                    "https://api.github.com/repos/" + repo + "/releases/latest").openConnection();
+            conn.setRequestProperty("User-Agent", "TemporaryRootApp");
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(10000);
+            if (conn.getResponseCode() != 200) return out;
+
+            StringBuilder sb = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+                for (String line; (line = reader.readLine()) != null; ) sb.append(line);
+            }
+            JSONArray assets = new JSONObject(sb.toString()).optJSONArray("assets");
+            if (assets == null) return out;
+            for (int i = 0; i < assets.length(); i++) {
+                JSONObject asset = assets.getJSONObject(i);
+                String name = asset.optString("name", "");
+                String url = asset.optString("browser_download_url", "");
+                if (name.isEmpty() || url.isEmpty() || !name.toLowerCase().endsWith(".apk")) continue;
+                out.add(new Variant(name, url, asset.optLong("size", 0)));
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "GitHub release fetch failed", e);
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
+        return out;
+    }
+
+    private void showVariantPicker(List<Variant> variants) {
+        int recommended = recommendedIndex(variants);
+        String[] labels = new String[variants.size()];
+        for (int i = 0; i < variants.size(); i++) {
+            Variant v = variants.get(i);
+            labels[i] = v.name + "\n" + formatSize(v.size)
+                    + (i == recommended ? "  •  Recommended" : "");
+        }
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Choose " + selectedEntry.title + " build")
+                .setItems(labels, (dialog, which) -> startDownload(variants.get(which)))
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
     /**
-     * Ranks release APKs for this arm64-only build. Negative means unusable.
-     * Releases often attach one APK per ABI (OriginSU does), and the first
-     * asset in the list is not guaranteed to be the arm64 one.
+     * Spoofed builds win because they ship a random package id; then the build
+     * matching this device's ABI; then a universal one; then whatever the
+     * release lists first.
      */
-    private static int apkScore(String fileName) {
-        String name = fileName.toLowerCase();
-        if (name.contains("x86") || name.contains("riscv")) return -1;
-        if (name.contains("universal")) return 3;
-        if (name.contains("arm64")) return 2;
-        if (name.contains("armeabi")) return 1;
+    private static int recommendedIndex(List<Variant> variants) {
+        for (int i = 0; i < variants.size(); i++) {
+            if (variants.get(i).name.toLowerCase().contains("spoof")) return i;
+        }
+        String abi = Build.SUPPORTED_ABIS.length > 0 ? Build.SUPPORTED_ABIS[0] : "arm64-v8a";
+        for (int i = 0; i < variants.size(); i++) {
+            if (matchesAbi(variants.get(i).name, abi)) return i;
+        }
+        for (int i = 0; i < variants.size(); i++) {
+            if (variants.get(i).name.toLowerCase().contains("universal")) return i;
+        }
         return 0;
     }
 
-    private void startDownload(String downloadUrl, String fileName) {
-        File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-        File existingFile = new File(downloadsDir, fileName);
-        if (existingFile.exists() && existingFile.length() > 1000000) {
-            Toast.makeText(this, fileName + " is already downloaded. Opening installer…", Toast.LENGTH_LONG).show();
-            statusView.setText(fileName + " is already downloaded. Launching installer…");
-            try {
-                Uri apkUri = FileProvider.getUriForFile(this, getPackageName() + ".provider", existingFile);
-                if (installApk(apkUri)) return;
-            } catch (Exception e) {
-                Log.w(TAG, "Failed to open existing file: " + e.getMessage());
-            }
+    private static boolean matchesAbi(String fileName, String abi) {
+        String name = fileName.toLowerCase();
+        if (abi.startsWith("arm64")) return name.contains("arm64") || name.contains("v8a");
+        if (abi.startsWith("armeabi")) {
+            return name.contains("armeabi") || (name.contains("arm") && !name.contains("arm64"));
+        }
+        return name.contains(abi.toLowerCase().replace('-', '_')) || name.contains(abi.toLowerCase());
+    }
+
+    private static String formatSize(long bytes) {
+        if (bytes <= 0) return "size unknown";
+        double mb = bytes / (1024.0 * 1024.0);
+        return mb >= 1
+                ? String.format(java.util.Locale.US, "%.1f MB", mb)
+                : String.format(java.util.Locale.US, "%.0f KB", bytes / 1024.0);
+    }
+
+    private void startDownload(Variant variant) {
+        File dir = getExternalFilesDir(null);
+        if (dir == null) dir = getCacheDir();
+        File apkDir = new File(dir, "apk");
+        if (!apkDir.isDirectory() && !apkDir.mkdirs()) {
+            Toast.makeText(this, "Cannot create download folder", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        File target = new File(apkDir, variant.name);
+        if (target.isFile() && target.length() > 100000) {
+            statusView.setText(variant.name + " is already downloaded");
+            launchInstaller(target);
+            return;
         }
 
-        try {
-            DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-            if (dm != null) {
-                DownloadManager.Request req = new DownloadManager.Request(Uri.parse(downloadUrl));
-                req.setTitle("Downloading " + selectedEntry.title);
-                req.setDescription(fileName);
-                req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-                req.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName);
-                activeDownloadId = dm.enqueue(req);
+        btnDownloadManager.setEnabled(false);
+        downloadProgress.setVisibility(View.VISIBLE);
+        downloadProgress.setProgress(0);
+        statusView.setText("Downloading " + variant.name + "…");
 
-                statusView.setText("Downloading " + fileName + "… Check notifications");
-                Toast.makeText(MainActivity.this, "Download started directly in app!", Toast.LENGTH_LONG).show();
+        mExec.execute(() -> {
+            File part = new File(apkDir, variant.name + ".part");
+            try {
+                HttpURLConnection conn = (HttpURLConnection) new URL(variant.url).openConnection();
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(30000);
+                conn.setRequestProperty("User-Agent", "TemporaryRootApp");
+                conn.setRequestProperty("Accept-Encoding", "identity");
+                conn.connect();
+                long total = conn.getContentLengthLong();
+                if (total <= 0) total = variant.size;
+
+                try (java.io.InputStream in = new java.io.BufferedInputStream(conn.getInputStream(), 1 << 16);
+                     java.io.FileOutputStream out = new java.io.FileOutputStream(part)) {
+                    byte[] buf = new byte[1 << 16];
+                    long done = 0;
+                    int lastPct = -1, n;
+                    while ((n = in.read(buf)) > 0) {
+                        out.write(buf, 0, n);
+                        done += n;
+                        if (total > 0) {
+                            int pct = (int) Math.min(100, done * 100 / total);
+                            if (pct != lastPct) {
+                                lastPct = pct;
+                                final long d = done, t = total;
+                                mMain.post(() -> showProgress(pct, d, t));
+                            }
+                        }
+                    }
+                }
+                conn.disconnect();
+                if (part.length() < 100000) throw new java.io.IOException("Download incomplete");
+
+                if (target.exists() && !target.delete()) throw new java.io.IOException("Cannot replace old APK");
+                if (!part.renameTo(target)) throw new java.io.IOException("Cannot save download");
+
+                mMain.post(() -> {
+                    downloadProgress.setVisibility(View.GONE);
+                    btnDownloadManager.setEnabled(true);
+                    statusView.setText("Downloaded " + variant.name);
+                    launchInstaller(target);
+                });
+            } catch (Exception e) {
+                part.delete();
+                mMain.post(() -> {
+                    downloadProgress.setVisibility(View.GONE);
+                    btnDownloadManager.setEnabled(true);
+                    statusView.setText("Download failed");
+                    Toast.makeText(MainActivity.this, "Download failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
             }
+        });
+    }
+
+    private void showProgress(int pct, long done, long total) {
+        downloadProgress.setProgress(pct);
+        statusView.setText("Downloading " + pct + "%  •  "
+                + String.format(java.util.Locale.US, "%.1f", done / (1024.0 * 1024.0)) + " / "
+                + String.format(java.util.Locale.US, "%.1f", total / (1024.0 * 1024.0)) + " MB");
+    }
+
+    private void launchInstaller(File apk) {
+        try {
+            Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".provider", apk);
+            if (ensureInstallPermission()) installApk(uri);
         } catch (Exception e) {
-            Toast.makeText(MainActivity.this, "Download failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Cannot open downloaded APK: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 
