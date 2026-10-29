@@ -45,5 +45,5 @@ GhostLock needs no LKM. Its "target" is a profile file named `<uname -r>.conf`, 
 
 - The package `build.bytes.temproot` lives under `app/src/main/java/build/`, which collides with Gradle's `build/` ignore rule. `.gitignore` only re-includes `*.java` directly in that folder, so new files or subpackages there are ignored by default.
 - `mockups/` (design reference) and `lkm/nord2-4.19/` (`device.config` reference dump; non-GKI 4.19 is unsupported) are local only and untracked.
-- `README.md` is maintained by the project owner.
+- `README.md` is maintained by the project owner; `CHANGELOG.md` is the release history. Update the changelog with user-visible changes.
 - Never commit `signing.properties`, `keystore.jks`, or `local.properties`.

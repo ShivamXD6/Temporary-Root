@@ -30,6 +30,7 @@
   - [🧨 DirtyFrag](#-dirtyfrag)
   - [👻 GhostLock](#-ghostlock)
   - [🧩 Root Managers](#-root-managers)
+  - [🛡️ Partition Protection](#️-partition-protection-anti-bricking)
   - [⚙️ Settings](#️-settings)
 - [📥 Requirements & Installation](#-requirements--installation)
 - [🔬 How It Works](#-how-it-works)
@@ -152,6 +153,19 @@ _Bring your own manager — the app only needs it to ship `libksud.so`._
   button.
 - Spoofed builds with random package ids are matched by app label, so they keep a working Download
   button instead of being treated as an unknown manager.
+
+</details>
+
+### 🛡️ Partition Protection (Anti-Bricking)
+
+_Mounts critical partitions as read-only to safeguard against bricking._
+
+<details>
+<summary><b>Protected partitions & safety (Click to Expand)</b></summary>
+
+- Before handing root to your manager, the bootstrap marks critical system block devices — including `super`, `misc`, `steady`, and slot partitions (`*_a`/`*_b`) — as read-only (`BLKROSET`).
+- This protects critical partitions from accidental writes, corrupted scripts, or rogue modules, ensuring your device cannot be bricked during a temporary root session.
+- Applies automatically to both DirtyFrag and GhostLock exploit chains.
 
 </details>
 
