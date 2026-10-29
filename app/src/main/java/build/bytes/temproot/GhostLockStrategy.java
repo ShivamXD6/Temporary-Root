@@ -126,7 +126,7 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
         // Busy CPUs widen the timing noise the race depends on (K(H)eaps, USENIX Sec '22).
         int load = cpuLoadPercent();
         if (load < 0) {
-            notes.append("   -   CPU load unreadable, skipped\n");
+            notes.append("   +0  CPU load not visible to apps without root\n");
         } else {
             d = clamp(Math.round(8 - load * 0.35f), -15, 8);
             score += d;

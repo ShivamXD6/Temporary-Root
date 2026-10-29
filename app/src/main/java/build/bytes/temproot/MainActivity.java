@@ -242,6 +242,8 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         }
 
         findViewById(R.id.btnCheckDevice).setOnClickListener(v -> checkDevice());
+        View chevron = findViewById(R.id.vulnerabilityChevron);
+        if (chevron != null) chevron.setOnClickListener(v -> spinnerVulnerability.performClick());
         findViewById(R.id.btnCopyLog).setOnClickListener(v -> copyLog());
         findViewById(R.id.btnShareLog).setOnClickListener(v -> shareLog());
         findViewById(R.id.btnShowLogs).setOnClickListener(v -> showSavedLog());
