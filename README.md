@@ -34,8 +34,6 @@
   - [⚙️ Settings](#️-settings)
 - [📥 Requirements & Installation](#-requirements--installation)
 - [🔬 How It Works](#-how-it-works)
-- [🛠️ Building](#️-building)
-- [🔑 Signing](#-signing)
 - [❓ FAQ](#-faq)
 - [💖 Support the Project](#-support-the-project)
 - [🙏 Credits](#-credits)
