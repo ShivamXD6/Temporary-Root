@@ -37,6 +37,7 @@
 - [📥 Requirements & Installation](#-requirements--installation)
 - [🔬 How It Works](#-how-it-works)
 - [🛠️ Building](#️-building)
+- [🔑 Signing](#-signing)
 - [❓ FAQ](#-faq)
 - [💖 Support the Project](#-support-the-project)
 - [🙏 Credits](#-credits)
@@ -113,6 +114,27 @@ with the mitigation backported, the probe reports **patched** and Start stays di
 * If upstream has no profile for your build, the check says so and tells you how many profiles exist.
 * Profile generation for a new kernel is done with the upstream extractor from your `boot.img` or an
   OTA link; that is a separate workflow, not something the app fakes.
+* Already have a `.conf` for this exact kernel? **Settings → Import GhostLock profile** validates the
+  `release` field against `uname -r` and compiles it on the spot, so a broken profile is rejected
+  before you ever tap Start. Upstream profiles still win when they exist; the import is the fallback
+  for kernels upstream has never built.
+
+</details>
+
+<details>
+<summary><b>The success estimate (Click to Expand)</b></summary>
+
+The percentage shown after a check is a heuristic, not a measurement. It starts at **50%** for an
+upstream profile and **5%** for an imported one (that file was not built by the project), then moves
+with things the app can actually see: free RAM, thermal status, uptime, battery level, battery saver,
+doze, whether the selected manager ships `ksud`, and whether the previous run finished. Night hours
+add a little, since the phone is usually idle then. Every press also gets **±7%** of run-to-run
+variance, and the result is clamped to 5–95%.
+
+Why these factors: kernel-race reliability degrades with competing load, thermal throttling and
+frequency scaling, and improves with a freshly rebooted, idle, cool device — see *Playing for
+K(H)eaps* (USENIX Security '22). The core already pins its threads and does the heap spray; the app
+can only control the environment around it.
 
 </details>
 
@@ -258,7 +280,17 @@ HOCON → GLK1 path without a device.
 ./gradlew :profile-core:test      # profile compiler self-check
 ```
 
-Full release (needs bash + podman, builds every module in the DDK containers):
+Signed release from the APK sources (works on Windows, uses the modules already in
+`app/src/main/jni/ko`):
+
+```powershell
+.\gradlew.bat :app:assembleRelease
+```
+
+That picks up `signing.properties` from the repository root — see [Signing](#-signing). Without it,
+`assembleRelease` silently falls back to debug signing.
+
+Full release (needs bash + podman, rebuilds every kernel module in the DDK containers and signs):
 
 ```sh
 export SIGNING_PASS='your-keystore-password'
@@ -311,6 +343,19 @@ Mode; from there disable "Start at boot" or uninstall the app.
 Upstream publishes profiles only for kernels someone extracted offsets for. Your exact `uname -r`
 is not in that list, and a nearby build string will not work — the offsets differ.
 
+If you generated a `.conf` for this exact kernel with the upstream extractor, import it in
+**Settings → Import GhostLock profile**. It is compiled and accepted on the spot, and the estimate
+starts at 5% because the profile was not built by the project.
+
+</details>
+
+<details>
+<summary><b>Why does the GhostLock percentage change between checks?</b></summary>
+
+Part of it is measured (RAM, thermals, uptime, battery, battery saver, doze, missing `ksud`,
+unfinished run), part of it is ±7% deliberate run-to-run variance, because two identical runs do
+not have identical odds. It is a hint about conditions, not a promise.
+
 </details>
 
 ---
@@ -321,6 +366,8 @@ Temporary Root is open-source and free. If it saved you a boot image patch, cons
 work:
 
 * [Sponsor via GitHub](https://github.com/sponsors/ShivamXD6)
+* [Donate via PayPal](https://paypal.me/ShivamXD6)
+* UPI: `shivamdhage@upi`
 * [Join Build Bytes on Telegram](https://telegram.me/BuildBytes)
 
 ---
