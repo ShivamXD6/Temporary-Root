@@ -52,6 +52,8 @@ jobs:
   build-temproot:
     needs: build-lkms
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v7
 
@@ -91,3 +93,11 @@ jobs:
         with:
           name: TemporaryRoot
           path: app/build/outputs/apk/release/*.apk
+
+      # Pushing a v* tag also publishes a GitHub release with the APK attached.
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app/build/outputs/apk/release/*.apk
+          generate_release_notes: true
