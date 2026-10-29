@@ -110,6 +110,15 @@ public class MainActivity extends AppCompatActivity implements IReporter {
                 .setDataAndType(apkUri, "application/vnd.android.package-archive")
                 .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
         try {
+            // Skip the share sheet when a system installer is present; third
+            // party APK openers (MT Manager etc.) only confuse users here.
+            for (String pkg : new String[]{"com.google.android.packageinstaller", "com.android.packageinstaller"}) {
+                Intent direct = new Intent(install).setPackage(pkg);
+                if (getPackageManager().resolveActivity(direct, 0) != null) {
+                    startActivity(direct);
+                    return true;
+                }
+            }
             startActivity(install);
             return true;
         } catch (Exception e) {
@@ -629,6 +638,21 @@ public class MainActivity extends AppCompatActivity implements IReporter {
 
     /** Every .apk asset of the latest release, in release order. */
     private static List<Variant> fetchVariants(String repo) {
+        for (int attempt = 0; attempt < 3; attempt++) {
+            List<Variant> out = fetchVariantsOnce(repo);
+            if (out != null) return out;
+            try {
+                Thread.sleep(1000L << attempt);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        return new ArrayList<>();
+    }
+
+    /** One attempt; null means a transient failure worth retrying. */
+    private static List<Variant> fetchVariantsOnce(String repo) {
         List<Variant> out = new ArrayList<>();
         HttpURLConnection conn = null;
         try {
@@ -637,7 +661,8 @@ public class MainActivity extends AppCompatActivity implements IReporter {
             conn.setRequestProperty("User-Agent", "TemporaryRootApp");
             conn.setConnectTimeout(10000);
             conn.setReadTimeout(10000);
-            if (conn.getResponseCode() != 200) return out;
+            int code = conn.getResponseCode();
+            if (code != 200) return code >= 500 || code == 429 ? null : out;
 
             StringBuilder sb = new StringBuilder();
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
@@ -652,12 +677,13 @@ public class MainActivity extends AppCompatActivity implements IReporter {
                 if (name.isEmpty() || url.isEmpty() || !name.toLowerCase().endsWith(".apk")) continue;
                 out.add(new Variant(name, url, asset.optLong("size", 0)));
             }
+            return out;
         } catch (Exception e) {
             Log.w(TAG, "GitHub release fetch failed", e);
+            return null;
         } finally {
             if (conn != null) conn.disconnect();
         }
-        return out;
     }
 
     private void showVariantPicker(List<Variant> variants) {
