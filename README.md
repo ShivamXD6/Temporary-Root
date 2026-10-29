@@ -148,9 +148,14 @@ with the mitigation backported, the probe reports **patched** and Start stays di
 * **Launch manager after success** — open the selected manager once root is up.
 * **Start at boot** — run the exploit on boot; the receiver is a normal app component, disable it
   any time.
-* **Auto soft reboot** — finalise the root state with a soft reboot when the manager supports it.
-* **Disable KSU modules** — skip modules on boot to recover from a bootlooping module.
-* **About** — version, community links and credits.
+* **Auto soft reboot** — restart Android services (not a full reboot) so the freshly loaded
+  module binds; needed with KernelSU late-load.
+* **Disable KSU modules** — writes a `disable` file into every `/data/adb/modules/<id>`, so
+  modules stay off until you re-enable them in the manager. It is a blunt recovery switch, not a
+  bootloop detector: it runs at root time, on the DirtyFrag path only.
+* **Import GhostLock profile** — load a `.conf` generated for this exact `uname -r`; the file is
+  compiled at import so a broken profile is rejected before a run.
+* **About** — version, community links, donation links and credits.
 
 </details>
 
@@ -289,6 +294,8 @@ work:
 ## 🙏 Credits
 
 * DirtyFrag research: [v4bel](https://github.com/V4bel/dirtyfrag)
+* DFRoot — the DirtyFrag chain, RO partition protection and late-load handoff this app is built
+  on: [diabl0w](https://github.com/diabl0w/DFRoot)
 * GhostLock research and profile format: [YuKongA](https://github.com/YuKongA/ghostlock-app)
 * Unprivileged XFRM socket method: [combeng6th/DirtyInit](https://github.com/combeng6th/DirtyInit)
 * SELinux permissive modules and related code: [polygraphene](https://github.com/polygraphene/DFReroot)
