@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -68,7 +69,6 @@ public class SettingsActivity extends AppCompatActivity {
         switchOpenManager.setChecked(dePrefs.getBoolean(ExploitRunner.PREF_OPEN_MANAGER, true));
         switchOpenManager.setOnCheckedChangeListener((buttonView, isChecked) ->
                 dePrefs.edit().putBoolean(ExploitRunner.PREF_OPEN_MANAGER, isChecked).apply());
-        cardOpenManager.setOnClickListener(v -> switchOpenManager.toggle());
 
         // 2. Start at Boot
         View cardBootStart = findViewById(R.id.cardBootStart);
@@ -86,9 +86,15 @@ public class SettingsActivity extends AppCompatActivity {
         View cardSoftReboot = findViewById(R.id.cardSoftReboot);
         MaterialSwitch switchSoftReboot = findViewById(R.id.switchSoftReboot);
         switchSoftReboot.setChecked(dePrefs.getBoolean(ExploitRunner.PREF_SOFT_REBOOT, true));
-        switchSoftReboot.setOnCheckedChangeListener((buttonView, isChecked) ->
-                dePrefs.edit().putBoolean(ExploitRunner.PREF_SOFT_REBOOT, isChecked).apply());
+        switchSoftReboot.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            dePrefs.edit().putBoolean(ExploitRunner.PREF_SOFT_REBOOT, isChecked).apply();
+            syncManagerRow(isChecked);
+        });
         cardSoftReboot.setOnClickListener(v -> switchSoftReboot.toggle());
+        cardOpenManager.setOnClickListener(v -> {
+            if (!switchSoftReboot.isChecked()) switchOpenManager.toggle();
+        });
+        syncManagerRow(switchSoftReboot.isChecked());
 
         // 4. Disable KSU Modules
         View cardDisableModules = findViewById(R.id.cardDisableModules);
@@ -104,6 +110,15 @@ public class SettingsActivity extends AppCompatActivity {
         // 6. About
         View cardAbout = findViewById(R.id.cardAbout);
         cardAbout.setOnClickListener(v -> startActivity(new Intent(ctx, AboutActivity.class)));
+    }
+
+    /** The soft reboot happens at the end of the run, so opening the manager first is pointless. */
+    private void syncManagerRow(boolean softReboot) {
+        ((MaterialSwitch) findViewById(R.id.switchOpenManager)).setEnabled(!softReboot);
+        findViewById(R.id.cardOpenManager).setAlpha(softReboot ? 0.4f : 1f);
+        ((TextView) findViewById(R.id.txtOpenManagerHint)).setText(softReboot
+                ? "Skipped while auto soft reboot is on"
+                : "Open the selected manager once root is up");
     }
 
     /**

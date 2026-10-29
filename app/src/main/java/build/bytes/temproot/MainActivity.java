@@ -562,7 +562,13 @@ public class MainActivity extends AppCompatActivity implements IReporter {
             }
             String msg = rc == 0 ? "Temporary Root: SUCCESS" : "Temporary Root: Error (code " + rc + ")";
             report("\n" + msg + "\n");
-            if (rc == 0 && mDeCtx.getSharedPreferences(ExploitRunner.PREFS_NAME, MODE_PRIVATE).getBoolean(ExploitRunner.PREF_OPEN_MANAGER, true)) {
+            // A soft reboot restarts the device anyway, so launching the
+            // manager first only races with it.
+            if (rc == 0
+                    && !mDeCtx.getSharedPreferences(ExploitRunner.PREFS_NAME, MODE_PRIVATE)
+                            .getBoolean(ExploitRunner.PREF_SOFT_REBOOT, true)
+                    && mDeCtx.getSharedPreferences(ExploitRunner.PREFS_NAME, MODE_PRIVATE)
+                            .getBoolean(ExploitRunner.PREF_OPEN_MANAGER, true)) {
                 mMain.postDelayed(this::openManager, 2500);
             }
             mMain.post(() -> Toast.makeText(this, msg, Toast.LENGTH_LONG).show());
