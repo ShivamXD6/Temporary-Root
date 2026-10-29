@@ -75,6 +75,7 @@ android {
     }
 
     packaging {
+        dex { useLegacyPackaging = true }
         jniLibs {
             // libtemproot.so is exec'd straight from nativeLibraryDir, so it must be
             // extracted at install time. Do not switch to unextracted packaging.

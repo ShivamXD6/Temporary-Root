@@ -139,10 +139,11 @@ public class SettingsActivity extends AppCompatActivity {
                     throw new IOException("profile is for " + release + ", this device runs " + device);
                 }
                 // The runner reads profiles from device-protected storage.
-                File dir = new File(createDeviceProtectedStorageContext().getFilesDir(), "ghostlock");
+                Context deCtx = createDeviceProtectedStorageContext();
+                File dir = new File(deCtx.getFilesDir(), "ghostlock");
                 if (!dir.isDirectory() && !dir.mkdirs()) throw new IOException("cannot create " + dir);
                 Files.write(new File(dir, release + ".conf").toPath(), text.getBytes(StandardCharsets.UTF_8));
-                GhostLockProfile.compile(this, release, msg -> { });
+                GhostLockProfile.compile(deCtx, release, msg -> { });
                 message = "Profile imported and compiled for " + release;
             } catch (Exception e) {
                 message = "Import failed: " + e.getMessage();
