@@ -148,11 +148,11 @@ with the mitigation backported, the probe reports **patched** and Start stays di
 * **Launch manager after success** — open the selected manager once root is up.
 * **Start at boot** — run the exploit on boot; the receiver is a normal app component, disable it
   any time.
-* **Auto soft reboot** — restart Android services (not a full reboot) so the freshly loaded
-  module binds; needed with KernelSU late-load.
+* **Auto soft reboot** — on by default. Restarts Android services (not a full reboot) so the
+  freshly loaded module binds; needed with KernelSU late-load. Applies to both exploits.
 * **Disable KSU modules** — writes a `disable` file into every `/data/adb/modules/<id>`, so
   modules stay off until you re-enable them in the manager. It is a blunt recovery switch, not a
-  bootloop detector: it runs at root time, on the DirtyFrag path only.
+  bootloop detector: it runs at root time. Applies to both exploits.
 * **Import GhostLock profile** — load a `.conf` generated for this exact `uname -r`; the file is
   compiled at import so a broken profile is rejected before a run.
 * **About** — version, community links, donation links and credits.
@@ -195,8 +195,9 @@ with the mitigation backported, the probe reports **patched** and Start stays di
    `/dev/tr` as a one-shot guard, and execs `insmod` in the `vendor_modprobe` domain.
 5. **temproot.ko init** — sets SELinux permissive, bypasses DEFEX where present, and runs the
    bootstrap through `call_usermodehelper`.
-6. **bootstrap** — stages `ksud` from your manager's native libs and runs `ksud late-load`, which
-   brings up the manager you already have.
+6. **bootstrap** — marks `super`, `misc`, `steady` and every `*_a`/`*_b` block device read-only
+   (`BLKROSET`), applies the module and soft-reboot settings, stages `ksud` from your manager's
+   native libs and runs `ksud late-load`, which brings up the manager you already have.
 
 </details>
 
@@ -206,7 +207,9 @@ with the mitigation backported, the probe reports **patched** and Start stays di
 1. The app resolves your kernel profile (HOCON) and compiles it into the GLK1 binary format.
 2. `libghostlock.so` loads that profile and runs the futex PI race to hijack a victim thread.
 3. It escalates to `init_cred`, bypasses seccomp, and starts an independent root shell.
-4. That shell locates `ksud` in your installed manager and runs `ksud late-load`.
+4. That shell runs our `bootstrap --protect` wrapper for the manager's `ksud`: same block-device
+   read-only protection, same module and soft-reboot settings as DirtyFrag.
+5. It then runs the real `ksud late-load` from the manager you picked.
 
 </details>
 

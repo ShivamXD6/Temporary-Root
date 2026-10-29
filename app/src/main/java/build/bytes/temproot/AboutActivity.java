@@ -54,21 +54,23 @@ public class AboutActivity extends AppCompatActivity {
         addLink(inflater, donate, "GitHub Sponsors", "Monthly or one-time, via GitHub", "https://github.com/sponsors/ShivamXD6");
         addLink(inflater, donate, "PayPal", "paypal.me/ShivamXD6", "https://paypal.me/ShivamXD6");
         addLink(inflater, donate, "UPI QR code", "Scan from any UPI app", "https://i.ibb.co/5g4J2RXR/1f38d6d7-a8a2-4696-88e6-9cf503e0592c.png");
-        addCopy(inflater, donate, "UPI ID (SBI)", "shivamashokdhage6@oksbi", "shivamashokdhage6@oksbi");
-        addCopy(inflater, donate, "UPI ID (superyes)", "shivam.dhage@superyes", "shivam.dhage@superyes");
+        addUpi(inflater, donate, "UPI — shivamdhage@upi", "Opens your UPI app (BHIM, GPay, …)", "shivamdhage@upi");
     }
 
-    /** A row that copies a short value instead of opening a browser. */
-    private void addCopy(LayoutInflater inflater, LinearLayout container,
-                         String title, String subtitle, String value) {
+    /** Opens the installed UPI app on a payment screen; copies the ID if none exists. */
+    private void addUpi(LayoutInflater inflater, LinearLayout container,
+                        String title, String subtitle, String upi) {
         View row = inflater.inflate(R.layout.item_link, container, false);
         ((TextView) row.findViewById(R.id.linkTitle)).setText(title);
         ((TextView) row.findViewById(R.id.linkSubtitle)).setText(subtitle);
-        ((android.widget.ImageView) row.findViewById(R.id.linkIcon)).setImageResource(R.drawable.ic_copy);
         row.setOnClickListener(v -> {
-            ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            clipboard.setPrimaryClip(ClipData.newPlainText(title, value));
-            Toast.makeText(this, "Copied " + value, Toast.LENGTH_SHORT).show();
+            try {
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("upi://pay?pa=" + upi)));
+            } catch (Exception e) {
+                ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                clipboard.setPrimaryClip(ClipData.newPlainText("UPI", upi));
+                Toast.makeText(this, "No UPI app found \u2014 ID copied", Toast.LENGTH_SHORT).show();
+            }
         });
         container.addView(row);
     }

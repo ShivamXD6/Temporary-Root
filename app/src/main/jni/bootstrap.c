@@ -25,6 +25,36 @@ static int pref_true(const char *buf, const char *key)
     return v && tag_end && v < tag_end;
 }
 
+static int pref_false(const char *buf, const char *key)
+{
+    char needle[64];
+    snprintf(needle, sizeof(needle), "name=\"%s\"", key);
+    char *p = strstr(buf, needle);
+    if (!p) return 0;
+    char *tag_end = strchr(p, '>');
+    char *v = strstr(p, "value=\"false\"");
+    return v && tag_end && v < tag_end;
+}
+
+/* Settings only exist once the screen has been opened, so a missing key has
+ * to fall back to the same default the switch shows. */
+static void read_toggles(int *soft_reboot, int *disable_modules)
+{
+    *soft_reboot = 1;
+    *disable_modules = 0;
+
+    int fd = open(PREFS_PATH, O_RDONLY);
+    if (fd < 0) return;
+    char buf[4096];
+    int n = read(fd, buf, sizeof(buf) - 1);
+    close(fd);
+    if (n <= 0) return;
+    buf[n] = '\0';
+
+    *soft_reboot = !pref_false(buf, "soft_reboot");
+    *disable_modules = pref_true(buf, "disable_modules");
+}
+
 static int read_prefs(char *su_manager, size_t su_manager_size, int *soft_reboot,
                       int *disable_modules)
 {
@@ -47,7 +77,7 @@ static int read_prefs(char *su_manager, size_t su_manager_size, int *soft_reboot
     memcpy(su_manager, p, len);
     su_manager[len] = '\0';
 
-    *soft_reboot = pref_true(buf, "soft_reboot");
+    *soft_reboot = !pref_false(buf, "soft_reboot");
     *disable_modules = pref_true(buf, "disable_modules");
 
     return 0;
@@ -193,8 +223,34 @@ static int disable_modules(void)
     return 0;
 }
 
-int main(void)
+/* Root stage for the GhostLock handoff: the same block-device protection the
+ * DirtyFrag bootstrap applies, then the real ksud. The soft reboot is delayed
+ * so the caller's root script can finish its own checks. */
+static int protect(const char *ksud)
 {
+    int soft_reboot, disable_mods;
+    read_toggles(&soft_reboot, &disable_mods);
+
+    set_partitions_ro();
+    if (disable_mods)
+        disable_modules();
+    if (!soft_reboot)
+        return 0;
+
+    pid_t pid = fork();
+    if (pid == 0) {
+        sleep(6);
+        run_ctx("u:r:ksu:s0", (char *[]){ (char *)ksud, "soft-reboot", NULL });
+        _exit(0);
+    }
+    return 0;
+}
+
+int main(int argc, char **argv)
+{
+    if (argc >= 3 && !strcmp(argv[1], "--protect"))
+        return protect(argv[2]);
+
     touch("/dev/trm1");
     char su_manager[256];
     int soft_reboot, disable_mods;

@@ -85,7 +85,7 @@ public class SettingsActivity extends AppCompatActivity {
         // 3. Auto Soft Reboot
         View cardSoftReboot = findViewById(R.id.cardSoftReboot);
         MaterialSwitch switchSoftReboot = findViewById(R.id.switchSoftReboot);
-        switchSoftReboot.setChecked(dePrefs.getBoolean(ExploitRunner.PREF_SOFT_REBOOT, false));
+        switchSoftReboot.setChecked(dePrefs.getBoolean(ExploitRunner.PREF_SOFT_REBOOT, true));
         switchSoftReboot.setOnCheckedChangeListener((buttonView, isChecked) ->
                 dePrefs.edit().putBoolean(ExploitRunner.PREF_SOFT_REBOOT, isChecked).apply());
         cardSoftReboot.setOnClickListener(v -> switchSoftReboot.toggle());
@@ -123,7 +123,8 @@ public class SettingsActivity extends AppCompatActivity {
                 if (!release.equals(device)) {
                     throw new IOException("profile is for " + release + ", this device runs " + device);
                 }
-                File dir = new File(getFilesDir(), "ghostlock");
+                // The runner reads profiles from device-protected storage.
+                File dir = new File(createDeviceProtectedStorageContext().getFilesDir(), "ghostlock");
                 if (!dir.isDirectory() && !dir.mkdirs()) throw new IOException("cannot create " + dir);
                 Files.write(new File(dir, release + ".conf").toPath(), text.getBytes(StandardCharsets.UTF_8));
                 GhostLockProfile.compile(this, release, msg -> { });

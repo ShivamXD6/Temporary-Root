@@ -17,6 +17,8 @@ import java.io.FileWriter;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Set;
@@ -192,7 +194,7 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
             // (ReSukiSU, KernelSU-Next, ...). Point it at the manager the user
             // picked so forks like OriginSU get the module instead.
             String ksud = managerKsud(context);
-            if (ksud != null) pb.environment().put("GHOSTLOCK_KSUD", ksud);
+            if (ksud != null) pb.environment().put("GHOSTLOCK_KSUD", handoff(context, ksud, reporter));
             Process process = pb.start();
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                 for (String line; (line = reader.readLine()) != null; ) reporter.report(line + "\n");
@@ -202,6 +204,32 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
             reporter.report("ghostlock: " + e.getMessage() + "\n");
             return 2;
         }
+    }
+
+    /**
+     * GhostLock's root script calls ksud itself. Hand it a wrapper so the
+     * protections and the soft-reboot setting apply to this path too.
+     * Falls back to the real ksud when the wrapper cannot be staged.
+     */
+    private static String handoff(Context context, String ksud, IReporter reporter) {
+        try {
+            File bootstrap = new File(context.getFilesDir().getParentFile(), "bootstrap");
+            if (!bootstrap.isFile()) {
+                Files.copy(new File(context.getApplicationInfo().nativeLibraryDir, "libbootstrap.so").toPath(),
+                        bootstrap.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
+            bootstrap.setExecutable(true, false);
+
+            File wrapper = new File(context.getFilesDir(), "ghostlock/ksud.sh");
+            try (FileWriter out = new FileWriter(wrapper)) {
+                out.write("#!/system/bin/sh\n\"" + bootstrap + "\" --protect \"" + ksud + "\"\n"
+                        + "exec \"" + ksud + "\" \"$@\"\n");
+            }
+            if (wrapper.setExecutable(true, false)) return wrapper.getAbsolutePath();
+        } catch (Exception e) {
+            reporter.report("ghostlock: handoff wrapper failed, using ksud directly (" + e.getMessage() + ")\n");
+        }
+        return ksud;
     }
 
     /** ksud shipped by the manager currently selected in the app, or null. */
