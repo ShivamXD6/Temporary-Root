@@ -69,11 +69,25 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
+      # Signed release when the repository secrets exist; otherwise the release
+      # build falls back to debug signing so forks and PRs still build.
+      - name: Set up release signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
+            printf 'KEYSTORE_FILE=../keystore.jks\nKEYSTORE_PASSWORD=%s\nKEY_ALIAS=%s\nKEY_PASSWORD=%s\n' \
+              "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEYSTORE_PASSWORD" > signing.properties
+          fi
+
       - name: Build Temporary Root APK
-        run: ./gradlew :app:assembleDebug
+        run: ./gradlew :app:assembleRelease
 
       - name: Upload Temporary Root APK
         uses: actions/upload-artifact@v7
         with:
           name: TemporaryRoot
-          path: app/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/release/*.apk

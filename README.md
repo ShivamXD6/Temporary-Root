@@ -162,6 +162,36 @@ with the mitigation backported, the probe reports **patched** and Start stays di
 
 ---
 
+## 🔑 Signing
+
+Release builds pick up `signing.properties` from the repository root (gitignored), so the key never
+enters the repo:
+
+```properties
+KEYSTORE_FILE=../keystore.jks
+KEYSTORE_PASSWORD=...
+KEY_ALIAS=temproot
+KEY_PASSWORD=...
+```
+
+`KEYSTORE_FILE` is resolved relative to `app/`. Generate the key once and keep a backup — losing it
+means installed users cannot update in place:
+
+```bash
+keytool -genkeypair -keystore keystore.jks -storetype JKS \
+  -storepass "<pass>" -keypass "<pass>" -alias temproot \
+  -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Temporary Root"
+```
+
+GitHub Actions signs the release APK when these repository secrets are set, and otherwise uploads a
+debug-signed release build so forks still work:
+
+* `KEYSTORE_BASE64` — `base64 -w0 keystore.jks`
+* `KEYSTORE_PASSWORD`
+* `KEY_ALIAS`
+
+---
+
 ## 📥 Requirements & Installation
 
 * **DirtyFrag**: GKI kernel — Android 12+ on 5.10, 5.15, 6.1, 6.6, 6.12 or 6.18. Non-GKI 4.x is not
