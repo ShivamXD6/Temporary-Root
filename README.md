@@ -2,7 +2,7 @@
 <div align="center">
   <img src=".github/icon.png" alt="Temporary Root Icon" width="128"/>
   <h1>⚡Temporary Root</h1>
-  <p><b>Kernel-level temporary root that hands over to your KernelSU manager — no boot image patching, no Shizuku, no Wi-Fi.</b></p>
+  <p><b>Kernel-level temporary root that hands over to your KernelSU manager.</b></p>
 
 [![Downloads](https://img.shields.io/github/downloads/ShivamXD6/Temporary-Root/total?color=green&style=for-the-badge)](../../releases)
 [![Release](https://img.shields.io/github/v/release/ShivamXD6/Temporary-Root?style=for-the-badge)](../../releases)
@@ -16,39 +16,11 @@
 
 <br>
 
-* **Temporary Root** gains a privileged session by exploiting a kernel vulnerability, loads a
+- **Temporary Root** gains a privileged session by exploiting a kernel vulnerability, loads a
   KernelSU-compatible module, and hands root to the manager you already use. Reboot and the device
-  is back to stock — nothing is written to your boot image.
-
-* *Note: This project started from the DirtyFrag research, and its DirtyFrag chain is built on
-  [DFRoot by diabl0w](https://github.com/diabl0w/DFRoot). DirtyFrag is one of the two paths it ships
-  now, next to GhostLock.*
-
-> [!WARNING]
-> This is a live kernel exploit. A missed race can panic and reboot the phone, and on a bad day it
-> can leave the device needing a reflash. Keep a backup, know how to recover, and only run it on a
-> device you can afford to lose. Nothing here is written to the boot image, so a reboot always
-> removes it.
-
-### ⚠️ What temporary root cannot do
-
-* **It disappears on reboot.** Root, loaded modules and the manager's state all go away, because
-  nothing is patched on disk.
-* **Zygisk / LSPosed / Shamiko-style modules usually do nothing.** They hook zygote during
-  `post-fs-data`, and the module only loads after zygote is already running. KernelSU's late-load
-  mode replaces `post-fs-data.sh` with a `late-load.sh` stage — modules that only ship the former
-  don't run their boot hook until a reboot, and after that reboot the temporary root is gone.
-* **Modules that need a reboot to take effect** can't help a session that ends with that reboot.
-* **Direct writes to `system` / `vendor` fail.** The app marks the block devices read-only before
-  handing off, so anything that patches partitions rather than overlaying them errors out.
-* **Modules that ship their own kernel module** need a matching `vermagic` and unsigned-module
-  support; `CONFIG_MODULE_SIG_FORCE=y` blocks them outright.
-* **These still work under late-load:** systemless overlays/metamodules, `service.sh`, `post-mount.sh`,
-  `system.prop`, `boot-completed.sh`, and modules that provide a `late-load.sh`.
-* **Samsung** adds DEFEX/Knox restrictions on top of everything above.
+  is back to stock.
 
 ---
-
 
 ## 📑 Table of Contents
 
@@ -71,15 +43,13 @@
 
 ## 💡 Why Temporary Root?
 
-* Most root methods ask you to unlock, patch and flash a boot image, which is permanent, device
+- Most root methods ask you to unlock, patch and flash a boot image, which is permanent, device
   specific and easy to get wrong. Temporary Root does the opposite: it stays inside a running
   Android system, uses a kernel bug for a few seconds, and gives the result to a normal KernelSU
   manager.
 
-* It also solves the boring part — knowing whether your kernel is actually exploitable. The app runs
+- It also solves the boring part — knowing whether your kernel is actually exploitable. The app runs
   a real probe instead of guessing from a version string, so "compatible" means tested, not assumed.
-
-* Everything runs on-device. No PC, no Shizuku, no Wi-Fi, no cloud service.
 
 ---
 
@@ -87,38 +57,38 @@
 
 ### 🧪 Compatibility Check
 
-*Three gates, and the last one is a live test.*
+_Three gates, and the last one is a live test._
 
 <details>
 <summary><b>How the check decides (Click to Expand)</b></summary>
 
-* Kernel branch gate — DirtyFrag only has modules for the GKI branches it ships (5.10, 5.15, 6.1,
+- Kernel branch gate — DirtyFrag only has modules for the GKI branches it ships (5.10, 5.15, 6.1,
   6.6, 6.12, 6.18). Non-GKI 4.x kernels are rejected with an explanation instead of a false positive.
-* Module signing gate — if the kernel sets `CONFIG_MODULE_SIG_FORCE=y`, the bundled unsigned modules
+- Module signing gate — if the kernel sets `CONFIG_MODULE_SIG_FORCE=y`, the bundled unsigned modules
   cannot load, so the check stops there.
-* Live probe — writes 16 bytes into a private temp file's page cache through the real ESP/CBC
+- Live probe — writes 16 bytes into a private temp file's page cache through the real ESP/CBC
   primitive and reads them back:
-  * pattern changed → **Vulnerable**
-  * unchanged → **Not vulnerable (patched)**
-  * probe could not run → **Check inconclusive**, never a false "compatible"
-* The verdict drives the status dot and the Start button, so you cannot start an exploit the app
+  - pattern changed → **Vulnerable**
+  - unchanged → **Not vulnerable (patched)**
+  - probe could not run → **Check inconclusive**, never a false "compatible"
+- The verdict drives the status dot and the Start button, so you cannot start an exploit the app
   already knows will fail.
 
 </details>
 
 ### 🧨 DirtyFrag
 
-*CVE-2026-43284 — kernel page-cache write through in-place ESP decryption.*
+_CVE-2026-43284 — kernel page-cache write through in-place ESP decryption._
 
 <details>
 <summary><b>Supported kernels (Click to Expand)</b></summary>
 
-* Android 12 → 5.10
-* Android 13 → 5.10, 5.15
-* Android 14 → 5.15, 6.1
-* Android 15 → 6.6
-* Android 16 → 6.12
-* Android 17 → 6.18
+- Android 12 → 5.10
+- Android 13 → 5.10, 5.15
+- Android 14 → 5.15, 6.1
+- Android 15 → 6.6
+- Android 16 → 6.12
+- Android 17 → 6.18
 
 The module is picked from your kernel branch and verified with the live probe above. On a kernel
 with the mitigation backported, the probe reports **patched** and Start stays disabled.
@@ -127,19 +97,19 @@ with the mitigation backported, the probe reports **patched** and Start stays di
 
 ### 👻 GhostLock
 
-*CVE-2026-43499 — futex PI use-after-free, driven by a per-kernel profile.*
+_CVE-2026-43499 — futex PI use-after-free, driven by a per-kernel profile._
 
 <details>
 <summary><b>Why GhostLock needs a profile (Click to Expand)</b></summary>
 
-* GhostLock needs exact offsets for your kernel build, so support is an exact `uname -r` match, not
+- GhostLock needs exact offsets for your kernel build, so support is an exact `uname -r` match, not
   a version range.
-* Nothing is bundled: the app downloads the matching upstream profile and its shared files, compiles
+- Nothing is bundled: the app downloads the matching upstream profile and its shared files, compiles
   them to the GLK1 format on the device, and starts the core with that profile.
-* If upstream has no profile for your build, the check says so and tells you how many profiles exist.
-* Profile generation for a new kernel is done with the upstream extractor from your `boot.img` or an
+- If upstream has no profile for your build, the check says so and tells you how many profiles exist.
+- Profile generation for a new kernel is done with the upstream extractor from your `boot.img` or an
   OTA link; that is a separate workflow, not something the app fakes.
-* Already have a `.conf` for this exact kernel? **Settings → Import GhostLock profile** validates the
+- Already have a `.conf` for this exact kernel? **Settings → Import GhostLock profile** validates the
   `release` field against `uname -r` and compiles it on the spot, so a broken profile is rejected
   before you ever tap Start. Upstream profiles still win when they exist; the import is the fallback
   for kernels upstream has never built.
@@ -157,95 +127,65 @@ add a little, since the phone is usually idle then. Every press also gets **±7%
 variance, and the result is clamped to 5–95%.
 
 Why these factors: kernel-race reliability degrades with competing load, thermal throttling and
-frequency scaling, and improves with a freshly rebooted, idle, cool device — see *Playing for
-K(H)eaps* (USENIX Security '22). The core already pins its threads and does the heap spray; the app
+frequency scaling, and improves with a freshly rebooted, idle, cool device — see _Playing for
+K(H)eaps_ (USENIX Security '22). The core already pins its threads and does the heap spray; the app
 can only control the environment around it.
 
 </details>
 
 ### 🧩 Root Managers
 
-*Bring your own manager — the app only needs it to ship `libksud.so`.*
+_Bring your own manager — the app only needs it to ship `libksud.so`._
 
 <details>
 <summary><b>Managers and Samsung handling (Click to Expand)</b></summary>
 
-* Pick a manager in the app and tap **Download** — the APK is fetched from that project's GitHub
+- Pick a manager in the app and tap **Download** — the APK is fetched from that project's GitHub
   releases, preferring a universal or arm64 build, and installed in place.
-* [OriginSU](https://github.com/samakshkambxj/OriginSU/releases/latest) is the default.
-* Also listed: [KernelSU](https://github.com/tiann/KernelSU/releases/latest),
+- [OriginSU](https://github.com/samakshkambxj/OriginSU/releases/latest) is the default.
+- Also listed: [KernelSU](https://github.com/tiann/KernelSU/releases/latest),
   [KernelSU-Next](https://github.com/KernelSU-Next/KernelSU-Next/releases/latest),
   [BakaSU](https://github.com/Baka-SU/BakaSU/releases/latest),
   [SukiSU-Ultra](https://github.com/SukiSU-Ultra/SukiSU-Ultra/releases/latest).
-* On Samsung devices only the [diabl0w KernelSU fork](https://github.com/diabl0w/KernelSU/releases)
+- On Samsung devices only the [diabl0w KernelSU fork](https://github.com/diabl0w/KernelSU/releases)
   is offered — Samsung kernels only accept its `ksud`, so showing the others would just be a broken
   button.
-* Spoofed builds with random package ids are matched by app label, so they keep a working Download
+- Spoofed builds with random package ids are matched by app label, so they keep a working Download
   button instead of being treated as an unknown manager.
 
 </details>
 
 ### ⚙️ Settings
 
-*The few knobs that matter after root is up.*
+_The few knobs that matter after root is up._
 
 <details>
 <summary><b>All the Settings (Click to Expand)</b></summary>
 
-* **Launch manager after success** — open the selected manager once root is up.
-* **Start at boot** — run the exploit on boot; the receiver is a normal app component, disable it
+- **Launch manager after success** — open the selected manager once root is up.
+- **Start at boot** — run the exploit on boot; the receiver is a normal app component, disable it
   any time.
-* **Auto soft reboot** — off by default. Restarts Android services (not a full reboot) so the
+- **Auto soft reboot** — off by default. Restarts Android services (not a full reboot) so the
   freshly loaded module binds; needed with KernelSU late-load. Applies to both exploits. While it
   is on, the manager launch below is skipped (the reboot replaces it).
-* **Disable KSU modules** — writes a `disable` file into every `/data/adb/modules/<id>`, so
+- **Disable KSU modules** — writes a `disable` file into every `/data/adb/modules/<id>`, so
   modules stay off until you re-enable them in the manager. It is a blunt recovery switch, not a
   bootloop detector: it runs at root time. Applies to both exploits.
-* **Import GhostLock profile** — load a `.conf` generated for this exact `uname -r`; the file is
+- **Import GhostLock profile** — load a `.conf` generated for this exact `uname -r`; the file is
   compiled at import so a broken profile is rejected before a run.
-* **About** — version, community links, donation links and credits.
+- **About** — version, community links, donation links and credits.
 
 </details>
 
 ---
 
-## 🔑 Signing
-
-Release builds pick up `signing.properties` from the repository root (gitignored), so the key never
-enters the repo:
-
-```properties
-KEYSTORE_FILE=../keystore.jks
-KEYSTORE_PASSWORD=...
-KEY_ALIAS=temproot
-KEY_PASSWORD=...
-```
-
-`KEYSTORE_FILE` is resolved relative to `app/`. Generate the key once and keep a backup — losing it
-means installed users cannot update in place:
-
-```bash
-keytool -genkeypair -keystore keystore.jks -storetype JKS \
-  -storepass "<pass>" -keypass "<pass>" -alias temproot \
-  -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Temporary Root"
-```
-
-GitHub Actions signs the release APK when these repository secrets are set, and otherwise uploads a
-debug-signed release build so forks still work:
-
-* `KEYSTORE_BASE64` — `base64 -w0 keystore.jks`
-* `KEYSTORE_PASSWORD`
-* `KEY_ALIAS`
-
----
-
 ## 📥 Requirements & Installation
 
-* **DirtyFrag**: GKI kernel — Android 12+ on 5.10, 5.15, 6.1, 6.6, 6.12 or 6.18. Non-GKI 4.x is not
+- **DirtyFrag**: GKI kernel — Android 12+ on 5.10, 5.15, 6.1, 6.6, 6.12 or 6.18. Non-GKI 4.x is not
   supported: those kernels have no Kernel Module Interface, so no shipped module can load.
-* **GhostLock**: an exact `uname -r` profile published upstream.
-* A KernelSU-compatible manager that ships `libksud.so`.
-* Android 12 or newer, arm64 device.
+- **GhostLock**: an exact `uname -r` profile published upstream.
+- A KernelSU-compatible manager that ships `libksud.so`.
+- Android 12 or newer, arm64 device.
 
 1. Download the latest APK from the [Releases Tab](../../releases).
 2. Open the app and pick a root manager (Download installs it for you).
@@ -286,40 +226,6 @@ debug-signed release build so forks still work:
 5. It then runs the real `ksud late-load` from the manager you picked.
 
 </details>
-
----
-
-## 🛠️ Building
-
-The native side builds two executables with the NDK: `libtemproot.so` (DirtyFrag, C) and
-`libghostlock.so` (GhostLock, vendored C++23 core in `app/src/main/jni/ghostlock`, Apache-2.0).
-The GhostLock profile compiler is a Kotlin JVM module (`:profile-core`); its host test checks the
-HOCON → GLK1 path without a device.
-
-```sh
-./gradlew :app:assembleDebug      # APK only
-./gradlew :profile-core:test      # profile compiler self-check
-```
-
-Signed release from the APK sources (works on Windows, uses the modules already in
-`app/src/main/jni/ko`):
-
-```powershell
-.\gradlew.bat :app:assembleRelease
-```
-
-That picks up `signing.properties` from the repository root — see [Signing](#-signing). Without it,
-`assembleRelease` silently falls back to debug signing.
-
-Full release (needs bash + podman, rebuilds every kernel module in the DDK containers and signs):
-
-```sh
-export SIGNING_PASS='your-keystore-password'
-export SIGNING_ALIAS='your-key-alias'
-make
-```
-
-Keystore credentials are never stored in the repository.
 
 ---
 
@@ -387,25 +293,25 @@ conditions are good, not that the race will land — a miss can still panic and 
 Temporary Root is open-source and free. If it saved you a boot image patch, consider supporting the
 work:
 
-* [Sponsor via GitHub](https://github.com/sponsors/ShivamXD6)
-* [Donate via PayPal](https://www.paypal.com/paypalme/ShivamXD6)
-* **BHIM / international UPI:** `shivamdhage@upi` — [QR code](https://i.ibb.co/ZRm2xN2L/bhimupi.jpg)
-* **GPay / UPI (India):** `shivamashokdhage6@oksbi` — [QR code](https://i.ibb.co/5g4J2RXR/1f38d6d7-a8a2-4696-88e6-9cf503e0592c.png)
-* [Join Build Bytes on Telegram](https://telegram.me/BuildBytes)
+- [Sponsor via GitHub](https://github.com/sponsors/ShivamXD6)
+- [Donate via PayPal](https://www.paypal.com/paypalme/ShivamXD6)
+- **BHIM / international UPI:** `shivamdhage@upi` — [QR code](https://i.ibb.co/ZRm2xN2L/bhimupi.jpg)
+- **GPay / UPI (India):** `shivamashokdhage6@oksbi` — [QR code](https://i.ibb.co/5g4J2RXR/1f38d6d7-a8a2-4696-88e6-9cf503e0592c.png)
+- [Join Build Bytes on Telegram](https://telegram.me/BuildBytes)
 
 ---
 
 ## 🙏 Credits
 
-* DirtyFrag research: [v4bel](https://github.com/V4bel/dirtyfrag)
-* DFRoot — the DirtyFrag chain, RO partition protection and late-load handoff this app is built
+- DirtyFrag research: [v4bel](https://github.com/V4bel/dirtyfrag)
+- DFRoot — the DirtyFrag chain, RO partition protection and late-load handoff this app is built
   on: [diabl0w](https://github.com/diabl0w/DFRoot)
-* GhostLock research and profile format: [YuKongA](https://github.com/YuKongA/ghostlock-app)
-* Unprivileged XFRM socket method: [combeng6th/DirtyInit](https://github.com/combeng6th/DirtyInit)
-* SELinux permissive modules and related code: [polygraphene](https://github.com/polygraphene/DFReroot)
-* `lspromise` and various code: [lsposed](https://github.com/lsposed/lspromise)
-* Inter typeface (SIL Open Font License 1.1): [rsms/inter](https://github.com/rsms/inter)
-* `include.inc` contains code Copyright © 2018 Odzhan, BSD-3-Clause
+- GhostLock research and profile format: [YuKongA](https://github.com/YuKongA/ghostlock-app)
+- Unprivileged XFRM socket method: [combeng6th/DirtyInit](https://github.com/combeng6th/DirtyInit)
+- SELinux permissive modules and related code: [polygraphene](https://github.com/polygraphene/DFReroot)
+- `lspromise` and various code: [lsposed](https://github.com/lsposed/lspromise)
+- Inter typeface (SIL Open Font License 1.1): [rsms/inter](https://github.com/rsms/inter)
+- `include.inc` contains code Copyright © 2018 Odzhan, BSD-3-Clause
 
 ---
 
