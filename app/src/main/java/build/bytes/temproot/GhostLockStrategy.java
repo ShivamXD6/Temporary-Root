@@ -222,8 +222,12 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
 
             File wrapper = new File(context.getFilesDir(), "ghostlock/ksud.sh");
             try (FileWriter out = new FileWriter(wrapper)) {
-                out.write("#!/system/bin/sh\n\"" + bootstrap + "\" --protect \"" + ksud + "\"\n"
-                        + "exec \"" + ksud + "\" \"$@\"\n");
+                out.write("#!/system/bin/sh\n"
+                        + "\"" + bootstrap + "\" --protect \"" + ksud + "\"\n"
+                        + "\"" + ksud + "\" \"$@\"\n"
+                        + "rc=$?\n"
+                        + "[ $rc -eq 0 ] && \"" + bootstrap + "\" --reboot \"" + ksud + "\"\n"
+                        + "exit $rc\n");
             }
             if (wrapper.setExecutable(true, false)) return wrapper.getAbsolutePath();
         } catch (Exception e) {

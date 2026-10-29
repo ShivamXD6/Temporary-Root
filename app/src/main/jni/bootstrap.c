@@ -223,9 +223,9 @@ static int disable_modules(void)
     return 0;
 }
 
-/* Root stage for the GhostLock handoff: the same block-device protection the
- * DirtyFrag bootstrap applies, then the real ksud. The soft reboot is delayed
- * so the caller's root script can finish its own checks. */
+/* Root stages for the GhostLock handoff: the same protections DirtyFrag gets,
+ * then the real ksud runs, then an optional soft reboot. Split in two so the
+ * reboot timer starts after late-load instead of racing it. */
 static int protect(const char *ksud)
 {
     int soft_reboot, disable_mods;
@@ -234,6 +234,13 @@ static int protect(const char *ksud)
     set_partitions_ro();
     if (disable_mods)
         disable_modules();
+    return 0;
+}
+
+static int reboot_later(const char *ksud)
+{
+    int soft_reboot, disable_mods;
+    read_toggles(&soft_reboot, &disable_mods);
     if (!soft_reboot)
         return 0;
 
@@ -250,6 +257,8 @@ int main(int argc, char **argv)
 {
     if (argc >= 3 && !strcmp(argv[1], "--protect"))
         return protect(argv[2]);
+    if (argc >= 3 && !strcmp(argv[1], "--reboot"))
+        return reboot_later(argv[2]);
 
     touch("/dev/trm1");
     char su_manager[256];
