@@ -54,7 +54,7 @@ public class AboutActivity extends AppCompatActivity {
         addLink(inflater, donate, "GitHub Sponsors", "Monthly or one-time, via GitHub", "https://github.com/sponsors/ShivamXD6");
         addLink(inflater, donate, "PayPal", "paypal.me/ShivamXD6", "https://paypal.me/ShivamXD6");
         addLink(inflater, donate, "UPI QR code", "Scan from any UPI app", "https://i.ibb.co/5g4J2RXR/1f38d6d7-a8a2-4696-88e6-9cf503e0592c.png");
-        addUpi(inflater, donate, "UPI — shivamdhage@upi", "Opens your UPI app (BHIM, GPay, …)", "shivamdhage@upi");
+        addUpi(inflater, donate, "Tap here to pay directly via UPI", "shivamdhage@upi", "shivamdhage@upi");
     }
 
     /** Opens the installed UPI app on a payment screen; copies the ID if none exists. */

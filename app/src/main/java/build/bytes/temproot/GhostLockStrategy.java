@@ -60,25 +60,34 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
         String profile = release + ".conf";
         Set<String> profiles = profiles(context);
         if (profiles != null && profiles.contains(profile)) {
-            Odds odds = odds(context, true);
+            Odds odds = odds(context, 66);
             return new CompatibilityResult("Supported \u2014 profile available \u00b7 ~" + odds.score + "%",
                     "Upstream ships " + profile + ". Start downloads and compiles it, then runs the GhostLock core."
                             + odds.detail,
                     true);
         }
         if (new File(context.getFilesDir(), "ghostlock/" + profile).isFile()) {
-            Odds odds = odds(context, true);
+            Odds odds = odds(context, 5);
             return new CompatibilityResult("Supported \u2014 imported profile \u00b7 ~" + odds.score + "%",
-                    "No upstream profile for this kernel; using the imported " + profile + "." + odds.detail, true);
+                    "No upstream profile for this kernel; using the imported " + profile + ". It was not built by "
+                            + "the project, so the estimate is only a candidate." + odds.detail, true);
         }
         if (profiles == null) {
             return new CompatibilityResult("Check inconclusive",
                     "Could not read the profile list. Connect to the internet and try again.", false);
         }
-        Odds odds = odds(context, false);
         return new CompatibilityResult("Unsupported kernel " + release,
                 "GhostLock only runs on kernels with an exact uname -r profile and none exists for this one ("
-                        + profiles.size() + " profiles published)." + odds.detail, false);
+                        + profiles.size() + " profiles published).", false);
+    }
+
+    /** 66 for an upstream profile, 5 for an imported one, 0 when there is none. */
+    private static int baseOdds(Context context) {
+        String release = System.getProperty("os.version", "").trim();
+        File cache = new File(context.getFilesDir(), CACHE);
+        Set<String> cached = cache.isFile() ? read(cache) : null;
+        if (cached != null && cached.contains(release + ".conf")) return 66;
+        return new File(context.getFilesDir(), "ghostlock/" + release + ".conf").isFile() ? 5 : 0;
     }
 
     /** Estimated chance of getting root right now, plus the reasons. */
@@ -93,12 +102,15 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
     }
 
     /**
-     * Heuristic from measurable device state, not a measurement. Starts at 50%
-     * because the primitive is only stable when everything else lines up; the
-     * notes below say what would raise or lower it.
+     * Heuristic from measurable device state, not a measurement. The base is
+     * set by where the profile came from: an upstream profile is built for this
+     * exact kernel, an imported one is only a candidate.
      */
-    private static Odds odds(Context context, boolean supported) {
-        int score = supported ? 50 : 0;
+    private static Odds odds(Context context, int base) {
+        if (base <= 0) {
+            return new Odds(0, "\n\nEstimated success 0%  \u2014 this kernel has no GhostLock profile");
+        }
+        int score = base;
         StringBuilder notes = new StringBuilder();
 
         ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
@@ -144,12 +156,10 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
             notes.append(note(-15, "last run never finished — reboot before retrying"));
         }
 
-        score = Math.max(5, Math.min(90, score));
-        String detail = (supported
-                ? "\n\nEstimated success ~" + score + "%  (from current device state)"
-                : "\n\nEstimated success 0%  — this kernel has no GhostLock profile")
+        score = Math.max(5, Math.min(base >= 66 ? 95 : 50, score));
+        String detail = "\n\nEstimated success ~" + score + "%  (from current device state)"
                 + "\n" + notes
-                + "  A missed race can panic and reboot the phone; reboot before retrying.";
+                + "  A missed race can panic and reboot the device; reboot before retrying.";
         return new Odds(score, detail);
     }
 
@@ -177,7 +187,7 @@ public final class GhostLockStrategy implements VulnerabilityStrategy {
             reporter.report("ghostlock: cannot read kernel release\n");
             return 2;
         }
-        reporter.report(odds(context, true).detail.trim() + "\n");
+        reporter.report(odds(context, baseOdds(context)).detail.trim() + "\n");
         try {
             File profile = GhostLockProfile.compile(context, release, reporter);
             File bin = new File(context.getApplicationInfo().nativeLibraryDir, "libghostlock.so");

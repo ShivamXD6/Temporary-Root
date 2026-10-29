@@ -74,6 +74,10 @@ public class MainActivity extends AppCompatActivity implements IReporter {
     private Spinner spinnerSuManager, spinnerVulnerability;
     private View logContentContainer;
     private ImageView btnToggleLog;
+    private static final CharSequence DIRTYFRAG_TIPS =
+            "After a successful run, soft reboot instead of a full reboot: the module loads and the manager "
+                    + "comes up. A full reboot unloads everything and root is gone.";
+    private CharSequence ghostlockTips;
     private boolean isLogExpanded = false;
     private boolean isExploitActive = false;
     private Context mDeCtx;
@@ -267,10 +271,14 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         loadManagers();
     }
 
-    /** GhostLock tips only make sense for that strategy. */
+    /** Each strategy has its own "best run" note under the picker. */
     private void updateStrategyTips() {
-        View tips = findViewById(R.id.ghostlockTips);
-        if (tips != null) tips.setVisibility(strategy instanceof GhostLockStrategy ? View.VISIBLE : View.GONE);
+        TextView tips = findViewById(R.id.ghostlockTips);
+        if (tips == null) return;
+        if (ghostlockTips == null) ghostlockTips = tips.getText();
+        boolean ghost = strategy instanceof GhostLockStrategy;
+        tips.setText(ghost ? ghostlockTips : DIRTYFRAG_TIPS);
+        tips.setVisibility(View.VISIBLE);
     }
 
     private void setLogExpanded(boolean expanded) {
@@ -538,7 +546,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         statusView.setText("Checking device…");
         VulnerabilityStrategy selected = strategy;
         mExec.execute(() -> {
-            CompatibilityResult result = selected.inspectRunningDevice(this, selectedManager, this);
+            CompatibilityResult result = selected.inspectRunningDevice(mDeCtx, selectedManager, this);
             mMain.post(() -> {
                 if (selected != strategy) return;
                 setLogExpanded(true);
