@@ -486,9 +486,6 @@ public class MainActivity extends AppCompatActivity implements IReporter {
 
     private boolean isRootActive() {
         if (isExploitActive) return true;
-        if (new File("/dev/tr").exists() || new File("/dev/trm6").exists() || new File("/dev/trm5").exists()) {
-            return true;
-        }
         // su can block on a root prompt, so probe it off the UI thread and cache the answer.
         long now = System.currentTimeMillis();
         if (now - externalRootCheckedAt > 5000) {

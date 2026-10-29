@@ -23,6 +23,8 @@ exe_path:
 ko_target:
     .ascii "/vendor/lib64/libbinderdebug.so\0"
     .skip 32, 0                             /* pad to 64 bytes — longest candidate path */
+log_path:
+    .asciz "/dev/trlog"
     .balign 4
     .global libcxx_ko_target_off
 libcxx_ko_target_off:
@@ -110,6 +112,21 @@ libcxx_start:
     mov     x2, selinux_ctx_end - selinux_ctx
     mov     x8, #SYS_write
     svc     0
+
+    // The hook runs as init, whose stderr is /dev/null. Point fd 2 at a
+    // world-readable file so the app can show what insmod said.
+    mov     x0, -100
+    adr     x1, log_path
+    movl    x2, (O_WRONLY|O_CREAT|O_TRUNC)
+    mov     x3, #0644
+    mov     x8, #SYS_openat
+    svc     0
+    tbnz    w0, #31, 1f
+    mov     x1, #2
+    mov     x2, xzr
+    mov     x8, #SYS_dup3
+    svc     0
+1:
 
     // execve("/vendor/bin/insmod", [exe_path, ko_target, NULL], NULL)
     adr     x1, exe_path
