@@ -7,21 +7,15 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.app.Activity;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
-
-import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.material.materialswitch.MaterialSwitch;
+import android.view.WindowInsets;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -34,13 +28,12 @@ import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class SettingsActivity extends AppCompatActivity {
+public class SettingsActivity extends Activity {
+
+    private static final int REQ_PICK_PROFILE = 1;
 
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private final Handler main = new Handler(Looper.getMainLooper());
-    private final ActivityResultLauncher<String[]> pickProfile =
-            registerForActivityResult(new ActivityResultContracts.OpenDocument(),
-                    uri -> { if (uri != null) importProfile(uri); });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,15 +41,13 @@ public class SettingsActivity extends AppCompatActivity {
         setContentView(R.layout.activity_settings);
 
         View root = findViewById(R.id.settingsRoot);
-        ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
-            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+        root.setOnApplyWindowInsetsListener((v, insets) -> {
+            var bars = insets.getInsets(WindowInsets.Type.systemBars());
             v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
             return insets;
         });
 
-        MaterialToolbar toolbar = findViewById(R.id.settingsToolbar);
-        setSupportActionBar(toolbar);
-        toolbar.setNavigationOnClickListener(v -> finish());
+        findViewById(R.id.settingsToolbar).setOnClickListener(v -> finish());
 
         Context ctx = this;
         SharedPreferences dePrefs = ctx.createDeviceProtectedStorageContext()
@@ -65,14 +56,14 @@ public class SettingsActivity extends AppCompatActivity {
 
         // 1. Launch Manager After Success (Default: TRUE)
         View cardOpenManager = findViewById(R.id.cardOpenManager);
-        MaterialSwitch switchOpenManager = findViewById(R.id.switchOpenManager);
+        Switch switchOpenManager = findViewById(R.id.switchOpenManager);
         switchOpenManager.setChecked(dePrefs.getBoolean(ExploitRunner.PREF_OPEN_MANAGER, true));
         switchOpenManager.setOnCheckedChangeListener((buttonView, isChecked) ->
                 dePrefs.edit().putBoolean(ExploitRunner.PREF_OPEN_MANAGER, isChecked).apply());
 
         // 2. Start at Boot
         View cardBootStart = findViewById(R.id.cardBootStart);
-        MaterialSwitch switchBootStart = findViewById(R.id.switchBootStart);
+        Switch switchBootStart = findViewById(R.id.switchBootStart);
         int bootState = ctx.getPackageManager().getComponentEnabledSetting(bootReceiver);
         switchBootStart.setChecked(bootState == PackageManager.COMPONENT_ENABLED_STATE_ENABLED);
         switchBootStart.setOnCheckedChangeListener((buttonView, isChecked) ->
@@ -84,7 +75,7 @@ public class SettingsActivity extends AppCompatActivity {
 
         // 3. Auto Soft Reboot
         View cardSoftReboot = findViewById(R.id.cardSoftReboot);
-        MaterialSwitch switchSoftReboot = findViewById(R.id.switchSoftReboot);
+        Switch switchSoftReboot = findViewById(R.id.switchSoftReboot);
         switchSoftReboot.setChecked(dePrefs.getBoolean(ExploitRunner.PREF_SOFT_REBOOT, false));
         switchSoftReboot.setOnCheckedChangeListener((buttonView, isChecked) -> {
             dePrefs.edit().putBoolean(ExploitRunner.PREF_SOFT_REBOOT, isChecked).apply();
@@ -98,14 +89,17 @@ public class SettingsActivity extends AppCompatActivity {
 
         // 4. Disable KSU Modules
         View cardDisableModules = findViewById(R.id.cardDisableModules);
-        MaterialSwitch switchDisableModules = findViewById(R.id.switchDisableModules);
+        Switch switchDisableModules = findViewById(R.id.switchDisableModules);
         switchDisableModules.setChecked(dePrefs.getBoolean("disable_modules", false));
         switchDisableModules.setOnCheckedChangeListener((buttonView, isChecked) ->
                 dePrefs.edit().putBoolean("disable_modules", isChecked).apply());
         cardDisableModules.setOnClickListener(v -> switchDisableModules.toggle());
 
         // 5. Import a GhostLock profile (.conf) for this exact kernel
-        findViewById(R.id.cardImportProfile).setOnClickListener(v -> pickProfile.launch(new String[]{"*/*"}));
+        findViewById(R.id.cardImportProfile).setOnClickListener(v ->
+                startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT)
+                        .addCategory(Intent.CATEGORY_OPENABLE)
+                        .setType("*/*"), REQ_PICK_PROFILE));
 
         // 6. About
         View cardAbout = findViewById(R.id.cardAbout);
@@ -114,7 +108,7 @@ public class SettingsActivity extends AppCompatActivity {
 
     /** The soft reboot happens at the end of the run, so opening the manager first is pointless. */
     private void syncManagerRow(boolean softReboot) {
-        ((MaterialSwitch) findViewById(R.id.switchOpenManager)).setEnabled(!softReboot);
+        ((Switch) findViewById(R.id.switchOpenManager)).setEnabled(!softReboot);
         findViewById(R.id.cardOpenManager).setAlpha(softReboot ? 0.4f : 1f);
         ((TextView) findViewById(R.id.txtOpenManagerHint)).setText(softReboot
                 ? "Skipped while auto soft reboot is on"
@@ -151,6 +145,15 @@ public class SettingsActivity extends AppCompatActivity {
             String result = message;
             main.post(() -> Toast.makeText(this, result, Toast.LENGTH_LONG).show());
         });
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQ_PICK_PROFILE && resultCode == RESULT_OK
+                && data != null && data.getData() != null) {
+            importProfile(data.getData());
+        }
     }
 
     private String readText(Uri uri) throws IOException {

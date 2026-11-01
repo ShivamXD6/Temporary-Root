@@ -1,22 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/settingsRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/surface"
     android:orientation="vertical">
 
-    <com.google.android.material.appbar.MaterialToolbar
+    <LinearLayout
         android:id="@+id/settingsToolbar"
         android:layout_width="match_parent"
         android:layout_height="64dp"
-        android:background="@android:color/transparent"
-        app:navigationIcon="?attr/homeAsUpIndicator"
-        app:navigationIconTint="@color/on_surface"
-        app:title="Configuration"
-        app:titleTextAppearance="@style/TextAppearance.Material3.TitleLarge"
-        app:titleTextColor="@color/on_surface" />
+        android:clickable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="18dp"
+            android:contentDescription="Back"
+            android:src="?android:attr/homeAsUpIndicator"
+            android:tint="@color/on_surface" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Configuration"
+            android:textAppearance="@style/TextAppearance.TemporaryRoot.TitleLarge"
+            android:textColor="@color/on_surface" />
+    </LinearLayout>
 
     <ScrollView
         android:layout_width="match_parent"
@@ -34,17 +48,14 @@
             android:orientation="vertical">
 
             <!-- 1. Launch manager after success -->
-            <com.google.android.material.card.MaterialCardView
+            <FrameLayout
                 android:id="@+id/cardOpenManager"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="10dp"
                 android:clickable="true"
                 android:focusable="true"
-                app:cardBackgroundColor="@color/surface_container"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp">
+                android:background="@drawable/bg_card_20">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -66,7 +77,7 @@
                             android:layout_gravity="center"
                             android:contentDescription="Launch manager"
                             android:src="@drawable/ic_open_manager"
-                            app:tint="@color/on_primary_container" />
+                            android:tint="@color/on_primary_container" />
                     </FrameLayout>
 
                     <LinearLayout
@@ -81,7 +92,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Launch manager after success"
-                            android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                            android:textAppearance="@style/TextAppearance.TemporaryRoot.TitleSmall"
                             android:textColor="@color/on_surface" />
 
                         <TextView
@@ -90,29 +101,26 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:text="Open the selected manager once root is up"
-                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textAppearance="@style/TextAppearance.TemporaryRoot.BodySmall"
                             android:textColor="@color/on_surface_variant" />
                     </LinearLayout>
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
+                    <Switch
                         android:id="@+id/switchOpenManager"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </FrameLayout>
 
             <!-- 2. Start at boot -->
-            <com.google.android.material.card.MaterialCardView
+            <FrameLayout
                 android:id="@+id/cardBootStart"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="10dp"
                 android:clickable="true"
                 android:focusable="true"
-                app:cardBackgroundColor="@color/surface_container"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp">
+                android:background="@drawable/bg_card_20">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -134,7 +142,7 @@
                             android:layout_gravity="center"
                             android:contentDescription="Start at boot"
                             android:src="@drawable/ic_boot"
-                            app:tint="@color/on_primary_container" />
+                            android:tint="@color/on_primary_container" />
                     </FrameLayout>
 
                     <LinearLayout
@@ -149,7 +157,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Start at boot"
-                            android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                            android:textAppearance="@style/TextAppearance.TemporaryRoot.TitleSmall"
                             android:textColor="@color/on_surface" />
 
                         <TextView
@@ -157,29 +165,26 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:text="Run Temporary Root when the device boots"
-                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textAppearance="@style/TextAppearance.TemporaryRoot.BodySmall"
                             android:textColor="@color/on_surface_variant" />
                     </LinearLayout>
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
+                    <Switch
                         android:id="@+id/switchBootStart"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </FrameLayout>
 
             <!-- 3. Auto soft reboot -->
-            <com.google.android.material.card.MaterialCardView
+            <FrameLayout
                 android:id="@+id/cardSoftReboot"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="10dp"
                 android:clickable="true"
                 android:focusable="true"
-                app:cardBackgroundColor="@color/surface_container"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp">
+                android:background="@drawable/bg_card_20">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -201,7 +206,7 @@
                             android:layout_gravity="center"
                             android:contentDescription="Auto soft reboot"
                             android:src="@drawable/ic_soft_reboot"
-                            app:tint="@color/on_primary_container" />
+                            android:tint="@color/on_primary_container" />
                     </FrameLayout>
 
                     <LinearLayout
@@ -216,7 +221,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Auto soft reboot"
-                            android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                            android:textAppearance="@style/TextAppearance.TemporaryRoot.TitleSmall"
                             android:textColor="@color/on_surface" />
 
                         <TextView
@@ -224,29 +229,26 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:text="Restart Android services so the loaded module binds — no full reboot needed"
-                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textAppearance="@style/TextAppearance.TemporaryRoot.BodySmall"
                             android:textColor="@color/on_surface_variant" />
                     </LinearLayout>
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
+                    <Switch
                         android:id="@+id/switchSoftReboot"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </FrameLayout>
 
             <!-- 4. Disable KSU modules -->
-            <com.google.android.material.card.MaterialCardView
+            <FrameLayout
                 android:id="@+id/cardDisableModules"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="10dp"
                 android:clickable="true"
                 android:focusable="true"
-                app:cardBackgroundColor="@color/surface_container"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp">
+                android:background="@drawable/bg_card_20">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -268,7 +270,7 @@
                             android:layout_gravity="center"
                             android:contentDescription="Disable KSU modules"
                             android:src="@drawable/ic_disable_modules"
-                            app:tint="@color/on_primary_container" />
+                            android:tint="@color/on_primary_container" />
                     </FrameLayout>
 
                     <LinearLayout
@@ -283,7 +285,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Disable KSU modules"
-                            android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                            android:textAppearance="@style/TextAppearance.TemporaryRoot.TitleSmall"
                             android:textColor="@color/on_surface" />
 
                         <TextView
@@ -291,29 +293,26 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:text="Mark every module disabled now; they stay off until you re-enable them"
-                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textAppearance="@style/TextAppearance.TemporaryRoot.BodySmall"
                             android:textColor="@color/on_surface_variant" />
                     </LinearLayout>
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
+                    <Switch
                         android:id="@+id/switchDisableModules"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </FrameLayout>
 
             <!-- 5. Import GhostLock profile -->
-            <com.google.android.material.card.MaterialCardView
+            <FrameLayout
                 android:id="@+id/cardImportProfile"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="10dp"
                 android:clickable="true"
                 android:focusable="true"
-                app:cardBackgroundColor="@color/surface_container"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp">
+                android:background="@drawable/bg_card_20">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -334,7 +333,7 @@
                             android:layout_gravity="center"
                             android:contentDescription="Import profile"
                             android:src="@drawable/ic_logs"
-                            app:tint="@color/on_primary_container" />
+                            android:tint="@color/on_primary_container" />
                     </FrameLayout>
 
                     <LinearLayout
@@ -349,7 +348,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Import GhostLock profile"
-                            android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                            android:textAppearance="@style/TextAppearance.TemporaryRoot.TitleSmall"
                             android:textColor="@color/on_surface" />
 
                         <TextView
@@ -357,7 +356,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:text="Use a .conf generated for this exact kernel"
-                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textAppearance="@style/TextAppearance.TemporaryRoot.BodySmall"
                             android:textColor="@color/on_surface_variant" />
                     </LinearLayout>
 
@@ -367,21 +366,18 @@
                         android:contentDescription="Import"
                         android:rotation="-90"
                         android:src="@drawable/ic_expand_more"
-                        app:tint="@color/on_surface_variant" />
+                        android:tint="@color/on_surface_variant" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </FrameLayout>
 
-            <com.google.android.material.card.MaterialCardView
+            <FrameLayout
                 android:id="@+id/cardAbout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:clickable="true"
                 android:focusable="true"
-                app:cardBackgroundColor="@color/surface_container"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp">
+                android:background="@drawable/bg_card_20">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -403,7 +399,7 @@
                             android:layout_gravity="center"
                             android:contentDescription="About"
                             android:src="@drawable/ic_info"
-                            app:tint="@color/on_primary_container" />
+                            android:tint="@color/on_primary_container" />
                     </FrameLayout>
 
                     <LinearLayout
@@ -418,7 +414,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="About"
-                            android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                            android:textAppearance="@style/TextAppearance.TemporaryRoot.TitleSmall"
                             android:textColor="@color/on_surface" />
 
                         <TextView
@@ -426,7 +422,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:text="Community links, version and credits"
-                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textAppearance="@style/TextAppearance.TemporaryRoot.BodySmall"
                             android:textColor="@color/on_surface_variant" />
                     </LinearLayout>
 
@@ -436,9 +432,9 @@
                         android:contentDescription="Open about"
                         android:rotation="-90"
                         android:src="@drawable/ic_expand_more"
-                        app:tint="@color/on_surface_variant" />
+                        android:tint="@color/on_surface_variant" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </FrameLayout>
 
         </LinearLayout>
     </ScrollView>

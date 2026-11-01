@@ -33,7 +33,7 @@
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="1"
-            android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+            android:textAppearance="@style/TextAppearance.TemporaryRoot.TitleSmall"
             android:textColor="@color/on_surface" />
 
         <TextView
@@ -43,7 +43,7 @@
             android:layout_marginTop="2dp"
             android:ellipsize="end"
             android:maxLines="1"
-            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+            android:textAppearance="@style/TextAppearance.TemporaryRoot.BodySmall"
             android:textColor="@color/on_surface_variant" />
     </LinearLayout>
 
@@ -55,5 +55,5 @@
         android:layout_centerVertical="true"
         android:contentDescription="Expand"
         android:src="@drawable/ic_expand_more"
-        app:tint="@color/on_surface_variant" />
+        android:tint="@color/on_surface_variant" />
 </RelativeLayout>

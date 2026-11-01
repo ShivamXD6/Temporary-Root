@@ -1,22 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/aboutRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/surface"
     android:orientation="vertical">
 
-    <com.google.android.material.appbar.MaterialToolbar
+    <LinearLayout
         android:id="@+id/aboutToolbar"
         android:layout_width="match_parent"
         android:layout_height="64dp"
-        android:background="@android:color/transparent"
-        app:navigationIcon="?attr/homeAsUpIndicator"
-        app:navigationIconTint="@color/on_surface"
-        app:title="About"
-        app:titleTextAppearance="@style/TextAppearance.Material3.TitleLarge"
-        app:titleTextColor="@color/on_surface" />
+        android:clickable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="18dp"
+            android:contentDescription="Back"
+            android:src="?android:attr/homeAsUpIndicator"
+            android:tint="@color/on_surface" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="About"
+            android:textAppearance="@style/TextAppearance.TemporaryRoot.TitleLarge"
+            android:textColor="@color/on_surface" />
+    </LinearLayout>
 
     <ScrollView
         android:layout_width="match_parent"
@@ -57,7 +71,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Temporary Root"
-                        android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
+                        android:textAppearance="@style/TextAppearance.TemporaryRoot.TitleLarge"
                         android:textColor="@color/on_surface" />
 
                     <TextView
@@ -65,7 +79,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                        android:textAppearance="@style/TextAppearance.TemporaryRoot.BodySmall"
                         android:textColor="@color/on_surface_variant" />
                 </LinearLayout>
             </LinearLayout>
@@ -76,15 +90,13 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical" />
 
-            <com.google.android.material.card.MaterialCardView
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:layout_marginBottom="10dp"
-                app:cardBackgroundColor="@color/surface_container"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp">
+                android:clickable="false"
+                android:background="@drawable/bg_card_20">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -96,7 +108,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Support the project"
-                        android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                        android:textAppearance="@style/TextAppearance.TemporaryRoot.TitleSmall"
                         android:textColor="@color/on_surface" />
 
                     <TextView
@@ -105,7 +117,7 @@
                         android:layout_marginTop="2dp"
                         android:layout_marginBottom="6dp"
                         android:text="Free and open source. Donations pay for the devices and time behind it."
-                        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                        android:textAppearance="@style/TextAppearance.TemporaryRoot.BodySmall"
                         android:textColor="@color/on_surface_variant" />
 
                     <LinearLayout
@@ -114,16 +126,14 @@
                         android:layout_height="wrap_content"
                         android:orientation="vertical" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </FrameLayout>
 
-            <com.google.android.material.card.MaterialCardView
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                app:cardBackgroundColor="@color/surface_container"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp">
+                android:clickable="false"
+                android:background="@drawable/bg_card_20">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -135,7 +145,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Credits"
-                        android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                        android:textAppearance="@style/TextAppearance.TemporaryRoot.TitleSmall"
                         android:textColor="@color/on_surface" />
 
                     <TextView
@@ -144,10 +154,10 @@
                         android:layout_marginTop="6dp"
                         android:lineSpacingExtra="2dp"
                         android:text="DirtyFrag research by v4bel, and DFRoot by diabl0w (github.com/diabl0w/DFRoot) — the DirtyFrag chain this app is built on. GhostLock by YuKongA and contributors. KernelSU, KernelSU-Next, BakaSU, SukiSU-Ultra, OriginSU and the diabl0w Samsung fork."
-                        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                        android:textAppearance="@style/TextAppearance.TemporaryRoot.BodySmall"
                         android:textColor="@color/on_surface_variant" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </FrameLayout>
 
         </LinearLayout>
     </ScrollView>

@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/mainRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -29,7 +28,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Temporary Root"
-                android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
+                android:textAppearance="@style/TextAppearance.TemporaryRoot.HeadlineSmall"
                 android:textColor="@color/on_surface" />
 
             <TextView
@@ -37,7 +36,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:text="Enhanced build · @BuildBytes"
-                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                android:textAppearance="@style/TextAppearance.TemporaryRoot.BodySmall"
                 android:textColor="@color/on_surface_variant" />
         </LinearLayout>
 
@@ -45,10 +44,10 @@
             android:id="@+id/btnSettings"
             android:layout_width="44dp"
             android:layout_height="44dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
             android:contentDescription="Configurations"
             android:src="@drawable/ic_settings"
-            app:tint="@color/primary" />
+            android:tint="@color/primary" />
     </LinearLayout>
 
     <ScrollView
@@ -65,14 +64,11 @@
             android:orientation="vertical">
 
             <!-- Status -->
-            <com.google.android.material.card.MaterialCardView
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                app:cardBackgroundColor="@color/surface_container_high"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp">
+                android:background="@drawable/bg_card_high">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -96,20 +92,17 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                        android:textAppearance="@style/TextAppearance.TemporaryRoot.BodyMedium"
                         android:textColor="@color/on_surface" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </FrameLayout>
 
             <!-- Manager -->
-            <com.google.android.material.card.MaterialCardView
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                app:cardBackgroundColor="@color/surface_container"
-                app:cardCornerRadius="24dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp">
+                android:background="@drawable/bg_card">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -121,7 +114,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Root manager"
-                        android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
+                        android:textAppearance="@style/TextAppearance.TemporaryRoot.LabelLarge"
                         android:textColor="@color/primary" />
 
                     <Spinner
@@ -139,29 +132,24 @@
                         android:layout_marginTop="10dp"
                         android:orientation="horizontal">
 
-                        <com.google.android.material.button.MaterialButton
+                        <Button
                             android:id="@+id/btnDownloadManager"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            style="@style/Btn.Outlined"
                             android:layout_width="0dp"
                             android:layout_height="44dp"
                             android:layout_weight="1"
                             android:maxLines="1"
-                            android:text="Download"
-                            android:textAllCaps="false"
-                            app:cornerRadius="22dp"
-                            app:strokeColor="@color/outline" />
+                            android:text="Download" />
 
-                        <com.google.android.material.button.MaterialButton
+                        <Button
                             android:id="@+id/btnOpenManager"
-                            style="@style/Widget.Material3.Button.TonalButton"
+                            style="@style/Btn.Tonal"
                             android:layout_width="0dp"
                             android:layout_height="44dp"
                             android:layout_marginStart="8dp"
                             android:layout_weight="1"
                             android:maxLines="1"
-                            android:text="Open"
-                            android:textAllCaps="false"
-                            app:cornerRadius="22dp" />
+                            android:text="Open" />
                     </LinearLayout>
 
                     <ProgressBar
@@ -173,17 +161,14 @@
                         android:max="100"
                         android:visibility="gone" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </FrameLayout>
 
             <!-- Vulnerability -->
-            <com.google.android.material.card.MaterialCardView
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="18dp"
-                app:cardBackgroundColor="@color/surface_container"
-                app:cardCornerRadius="24dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp">
+                android:background="@drawable/bg_card">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -205,17 +190,17 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="Vulnerability"
-                            android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
+                            android:textAppearance="@style/TextAppearance.TemporaryRoot.LabelLarge"
                             android:textColor="@color/primary" />
 
                         <ImageButton
                             android:id="@+id/btnVulnerabilityInfo"
                             android:layout_width="34dp"
                             android:layout_height="34dp"
-                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:background="?android:attr/selectableItemBackgroundBorderless"
                             android:contentDescription="Vulnerability info"
                             android:src="@drawable/ic_info"
-                            app:tint="@color/on_surface_variant" />
+                            android:tint="@color/on_surface_variant" />
                     </LinearLayout>
 
                     <LinearLayout
@@ -241,7 +226,7 @@
                             android:layout_height="20dp"
                             android:contentDescription="Choose vulnerability"
                             android:src="@drawable/ic_expand_more"
-                            app:tint="@color/on_surface_variant" />
+                            android:tint="@color/on_surface_variant" />
                     </LinearLayout>
 
                     <TextView
@@ -252,45 +237,37 @@
                         android:layout_marginEnd="6dp"
                         android:lineSpacingExtra="2dp"
                         android:text="Best run: fresh reboot, phone cool and idle, 50%+ battery, battery saver off, this app in front, screen untouched. The estimate above measures exactly these."
-                        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                        android:textAppearance="@style/TextAppearance.TemporaryRoot.BodySmall"
                         android:textColor="@color/on_surface_variant"
                         android:visibility="gone" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </FrameLayout>
 
             <!-- Actions -->
-            <com.google.android.material.button.MaterialButton
+            <Button
                 android:id="@+id/btnRun"
-                style="@style/Widget.Material3.Button"
+                style="@style/Btn.Filled"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:text="Start Temporary Root"
-                android:textAllCaps="false"
-                android:textSize="15sp"
-                app:cornerRadius="28dp" />
+                android:textSize="15sp" />
 
-            <com.google.android.material.button.MaterialButton
+            <Button
                 android:id="@+id/btnCheckDevice"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+                style="@style/Btn.Outlined"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:layout_marginTop="10dp"
                 android:layout_marginBottom="18dp"
-                android:text="Check device compatibility"
-                android:textAllCaps="false"
-                app:cornerRadius="24dp"
-                app:strokeColor="@color/outline" />
+                android:text="Check device compatibility" />
 
             <!-- Console -->
-            <com.google.android.material.card.MaterialCardView
+            <FrameLayout
                 android:id="@+id/cardLog"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="4dp"
-                app:cardBackgroundColor="@color/surface_container"
-                app:cardCornerRadius="24dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp">
+                android:background="@drawable/bg_card">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -317,7 +294,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="Console log"
-                            android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
+                            android:textAppearance="@style/TextAppearance.TemporaryRoot.LabelLarge"
                             android:textColor="@color/on_surface_variant" />
 
                         <ImageButton
@@ -325,10 +302,10 @@
                             android:layout_width="28dp"
                             android:layout_height="28dp"
                             android:layout_marginEnd="6dp"
-                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:background="?android:attr/selectableItemBackgroundBorderless"
                             android:contentDescription="Saved logs"
                             android:src="@drawable/ic_logs"
-                            app:tint="@color/on_surface_variant" />
+                            android:tint="@color/on_surface_variant" />
 
                         <ImageView
                             android:id="@+id/btnToggleLog"
@@ -336,7 +313,7 @@
                             android:layout_height="20dp"
                             android:contentDescription="Toggle log view"
                             android:src="@drawable/ic_expand_more"
-                            app:tint="@color/on_surface_variant" />
+                            android:tint="@color/on_surface_variant" />
                     </LinearLayout>
 
                     <LinearLayout
@@ -370,27 +347,25 @@
                             android:layout_marginTop="2dp"
                             android:orientation="horizontal">
 
-                            <com.google.android.material.button.MaterialButton
+                            <Button
                                 android:id="@+id/btnCopyLog"
-                                style="@style/Widget.Material3.Button.TextButton"
+                                style="@style/Btn.Text"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="Copy log"
-                                android:textAllCaps="false" />
+                                android:text="Copy log" />
 
-                            <com.google.android.material.button.MaterialButton
+                            <Button
                                 android:id="@+id/btnShareLog"
-                                style="@style/Widget.Material3.Button.TextButton"
+                                style="@style/Btn.Text"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="Share log"
-                                android:textAllCaps="false" />
+                                android:text="Share log" />
                         </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </FrameLayout>
 
         </LinearLayout>
     </ScrollView>

@@ -109,20 +109,24 @@ static int __nocfi __init temproot_init(void)
     // Some kernels ship CONFIG_SECURITY_SELINUX_DEVELOP=n, so the selinux_state
     // write above is a no-op there — patch the SELinux checks themselves instead
     // (both: most denials surface through the noaudit path first).
-    avc_fn = (void *)get_addr("avc_has_perm");
-    if (!avc_fn)
-        pr_err("temproot: avc_has_perm not found, skipping\n");
-    else {
-        patch_fn_ret_zero(avc_fn);
-        pr_info("temproot: avc_has_perm patched\n");
-    }
+    // Patching unconditionally also leaves SELinux bypassed after KernelSU
+    // restores enforcing, which root detectors flag as a kernel tamper.
+    if (READ_ONCE(*selinux_state)) {
+        avc_fn = (void *)get_addr("avc_has_perm");
+        if (!avc_fn)
+            pr_err("temproot: avc_has_perm not found, skipping\n");
+        else {
+            patch_fn_ret_zero(avc_fn);
+            pr_info("temproot: avc_has_perm patched\n");
+        }
 
-    avc_noaudit_fn = (void *)get_addr("avc_has_perm_noaudit");
-    if (!avc_noaudit_fn)
-        pr_err("temproot: avc_has_perm_noaudit not found, skipping\n");
-    else {
-        patch_fn_ret_zero(avc_noaudit_fn);
-        pr_info("temproot: avc_has_perm_noaudit patched\n");
+        avc_noaudit_fn = (void *)get_addr("avc_has_perm_noaudit");
+        if (!avc_noaudit_fn)
+            pr_err("temproot: avc_has_perm_noaudit not found, skipping\n");
+        else {
+            patch_fn_ret_zero(avc_noaudit_fn);
+            pr_info("temproot: avc_has_perm_noaudit patched\n");
+        }
     }
 
     // Oppo/OnePlus
@@ -182,5 +186,10 @@ static int __nocfi __init temproot_init(void)
     return -ENODEV; /* return any error to unload module */
 }
 
-/* no module_exit: we never unload; saves .exit sections */
+/* some kernels' cfi_init walks both __cfi_jt_init_module and __cfi_jt_cleanup_module
+ * at load time; without a module_exit, the cleanup_module CFI jump table entry is
+ * absent and cfi_init crashes in strcmp */
+static void __exit temproot_exit(void) {}
+
 module_init(temproot_init);
+module_exit(temproot_exit);

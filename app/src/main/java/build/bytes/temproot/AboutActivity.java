@@ -6,20 +6,16 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.app.Activity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
+import android.view.WindowInsets;
 
-import com.google.android.material.appbar.MaterialToolbar;
-
-public class AboutActivity extends AppCompatActivity {
+public class AboutActivity extends Activity {
     private static final String GITHUB_APP = "https://github.com/ShivamXD6/Temporary-Root";
     private static final String TELEGRAM_CHANNEL = "https://telegram.me/BuildBytes";
     /** Empty hides the row. */
@@ -31,15 +27,13 @@ public class AboutActivity extends AppCompatActivity {
         setContentView(R.layout.activity_about);
 
         View root = findViewById(R.id.aboutRoot);
-        ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
-            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+        root.setOnApplyWindowInsetsListener((v, insets) -> {
+            var bars = insets.getInsets(WindowInsets.Type.systemBars());
             v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
             return insets;
         });
 
-        MaterialToolbar toolbar = findViewById(R.id.aboutToolbar);
-        setSupportActionBar(toolbar);
-        toolbar.setNavigationOnClickListener(v -> finish());
+        findViewById(R.id.aboutToolbar).setOnClickListener(v -> finish());
 
         ((TextView) findViewById(R.id.aboutVersion)).setText(
                 "Version " + BuildConfig.VERSION_NAME + " · kernel-assisted temporary root");

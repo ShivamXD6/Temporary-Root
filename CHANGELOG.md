@@ -4,6 +4,16 @@ All notable changes to Temporary Root.
 
 ---
 
+## Temporary Root 2.1
+
+### Fixed
+- The DirtyFrag LKM no longer patches `avc_has_perm`/`avc_has_perm_noaudit` when the `selinux_state` permissive write succeeds (upstream DFRoot behavior). The unconditional patch left SELinux bypassed after the SU manager re-enabled enforcing, which root detectors (e.g. Duck Detector native root signals) flagged as kernel tampering.
+
+### Changed
+- Shrunk the APK from ~1.6 MB to ~426 KB by dropping AppCompat/Material/ConstraintLayout (platform widgets + shape drawables) and bundling Inter fonts. Visual retune: system Roboto, plain-shape cards.
+
+---
+
 ## Temporary Root 2.0
 
 ### Added

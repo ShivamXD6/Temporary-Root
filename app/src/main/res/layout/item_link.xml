@@ -1,15 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="10dp"
     android:clickable="true"
     android:focusable="true"
-    app:cardBackgroundColor="@color/surface_container"
-    app:cardCornerRadius="20dp"
-    app:cardElevation="0dp"
-    app:strokeWidth="0dp">
+    android:background="@drawable/bg_card_20">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -31,7 +27,7 @@
                 android:layout_gravity="center"
                 android:contentDescription="@null"
                 android:src="@drawable/ic_link"
-                app:tint="@color/on_primary_container" />
+                android:tint="@color/on_primary_container" />
         </FrameLayout>
 
         <LinearLayout
@@ -46,7 +42,7 @@
                 android:id="@+id/linkTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                android:textAppearance="@style/TextAppearance.TemporaryRoot.TitleSmall"
                 android:textColor="@color/on_surface" />
 
             <TextView
@@ -54,7 +50,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                android:textAppearance="@style/TextAppearance.TemporaryRoot.BodySmall"
                 android:textColor="@color/on_surface_variant" />
         </LinearLayout>
 
@@ -64,6 +60,6 @@
             android:contentDescription="@null"
             android:rotation="-90"
             android:src="@drawable/ic_expand_more"
-            app:tint="@color/on_surface_variant" />
+            android:tint="@color/on_surface_variant" />
     </LinearLayout>
-</com.google.android.material.card.MaterialCardView>
+</FrameLayout>

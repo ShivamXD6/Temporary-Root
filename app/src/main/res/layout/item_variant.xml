@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:minHeight="64dp"
-    android:background="?attr/selectableItemBackground"
+    android:background="?android:attr/selectableItemBackground"
     android:gravity="center_vertical"
     android:orientation="horizontal"
     android:paddingStart="20dp"
@@ -17,7 +17,7 @@
         android:layout_height="wrap_content"
         android:clickable="false"
         android:focusable="false"
-        android:buttonTint="?attr/colorPrimary" />
+        android:buttonTint="@color/primary" />
 
     <LinearLayout
         android:layout_width="0dp"
@@ -32,7 +32,7 @@
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="1"
-            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+            android:textAppearance="@style/TextAppearance.TemporaryRoot.BodyMedium"
             android:textColor="@color/on_surface" />
 
         <TextView
@@ -42,7 +42,7 @@
             android:layout_marginTop="2dp"
             android:ellipsize="middle"
             android:maxLines="1"
-            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+            android:textAppearance="@style/TextAppearance.TemporaryRoot.BodySmall"
             android:textColor="@color/on_surface_variant" />
     </LinearLayout>
 </LinearLayout>

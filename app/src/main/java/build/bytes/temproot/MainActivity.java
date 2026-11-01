@@ -24,6 +24,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.view.WindowInsets;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
@@ -37,13 +38,10 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import android.app.Activity;
+import android.app.AlertDialog;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -64,7 +62,7 @@ import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
-public class MainActivity extends AppCompatActivity implements IReporter {
+public class MainActivity extends Activity implements IReporter {
     private static final String TAG = "temporaryroot";
     private Button btnRun, btnOpenManager, btnDownloadManager;
     private ScrollView outputScroll;
@@ -152,8 +150,8 @@ public class MainActivity extends AppCompatActivity implements IReporter {
 
         View mainRoot = findViewById(R.id.mainRoot);
         if (mainRoot != null) {
-            ViewCompat.setOnApplyWindowInsetsListener(mainRoot, (v, insets) -> {
-                Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            mainRoot.setOnApplyWindowInsetsListener((v, insets) -> {
+                var bars = insets.getInsets(WindowInsets.Type.systemBars());
                 v.setPadding(bars.left + dpToPx(20), bars.top + dpToPx(10), bars.right + dpToPx(20), bars.bottom + dpToPx(14));
                 return insets;
             });
@@ -551,7 +549,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
 
     /** At 85%+ the conditions are as good as they get, so offer a one-tap start. */
     private void offerStart(int score) {
-        new MaterialAlertDialogBuilder(this)
+        new AlertDialog.Builder(this)
                 .setTitle("Conditions look good")
                 .setMessage("Estimated " + score + "% success on this device right now.\n\n"
                         + "A miss can panic and reboot the phone.")
@@ -625,7 +623,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
     /** The on-disk log, so it is still there after a crash or kernel panic. */
     private void showSavedLog() {
         String text = RunLog.read(this);
-        new MaterialAlertDialogBuilder(this)
+        new AlertDialog.Builder(this)
                 .setTitle("Saved log")
                 .setMessage(text)
                 .setPositiveButton("Copy", (dialog, which) -> {
@@ -768,7 +766,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
             adapter.notifyDataSetChanged();
         });
 
-        new MaterialAlertDialogBuilder(this)
+        new AlertDialog.Builder(this)
                 .setTitle("Choose " + selectedEntry.title + " build")
                 .setView(list)
                 .setPositiveButton("Download", (dialog, which) -> startDownload(ordered.get(choice[0])))

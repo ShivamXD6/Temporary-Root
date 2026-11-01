@@ -1,31 +1,13 @@
 <resources>
-    <style name="Theme.TemporaryRoot" parent="Theme.Material3.Dark.NoActionBar">
+    <style name="Theme.TemporaryRoot" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/surface</item>
         <item name="android:colorBackground">@color/surface</item>
-        <item name="android:fontFamily">@font/inter_regular</item>
         <item name="android:statusBarColor">@color/surface</item>
         <item name="android:navigationBarColor">@color/surface</item>
 
-        <item name="colorPrimary">@color/primary</item>
-        <item name="colorOnPrimary">@color/on_primary</item>
-        <item name="colorPrimaryContainer">@color/primary_container</item>
-        <item name="colorOnPrimaryContainer">@color/on_primary_container</item>
-        <item name="colorSecondaryContainer">@color/secondary_container</item>
-        <item name="colorOnSecondaryContainer">@color/on_secondary_container</item>
-
+        <item name="android:colorPrimary">@color/primary</item>
         <item name="android:colorAccent">@color/primary</item>
-        <item name="colorControlActivated">@color/primary</item>
-        <item name="colorControlNormal">@color/on_surface_variant</item>
-
-        <item name="colorSurface">@color/surface</item>
-        <item name="colorOnSurface">@color/on_surface</item>
-        <item name="colorOnSurfaceVariant">@color/on_surface_variant</item>
-        <item name="colorSurfaceVariant">@color/surface_container_high</item>
-        <item name="colorSurfaceContainerLow">@color/surface_low</item>
-        <item name="colorSurfaceContainer">@color/surface_container</item>
-        <item name="colorSurfaceContainerHigh">@color/surface_container_high</item>
-        <item name="colorSurfaceContainerHighest">@color/surface_container_highest</item>
-        <item name="colorOutline">@color/outline</item>
-        <item name="colorOutlineVariant">@color/outline_variant</item>
+        <item name="android:colorControlActivated">@color/primary</item>
+        <item name="android:colorControlNormal">@color/on_surface_variant</item>
     </style>
 </resources>

@@ -20,8 +20,8 @@ android {
         applicationId = "build.bytes.temproot"
         minSdk = 32
         targetSdk = 37
-        versionCode = 5
-        versionName = "2.0"
+        versionCode = 6
+        versionName = "2.1"
 
         ndk {
             abiFilters += listOf("arm64-v8a")
@@ -93,8 +93,6 @@ androidComponents {
 }
 
 dependencies {
-    implementation(libs.androidx.appcompat)
-    implementation(libs.material)
-    implementation(libs.androidx.constraintlayout)
+    implementation("androidx.core:core:1.15.0")
     implementation(project(":profile-core"))
 }
